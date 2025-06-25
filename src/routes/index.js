@@ -1,9 +1,12 @@
 import express from 'express';
-import {  } from '../controllers/index.js';
+import rolesRoutes from '../api/roles.js';
+import usersRoutes from '../api/users.js';
+import authRoutes from '../api/auth/login.js';
 
 const router = express.Router();
 
-// router.get('/items', getAllItems);
-// router.post('/items', createItem);
+router.use('/roles', rolesRoutes);
+router.use('/users', usersRoutes);
+router.use('/auth', authRoutes);
 
 export default router;
