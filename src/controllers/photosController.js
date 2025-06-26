@@ -15,9 +15,8 @@ export const uploadPhoto = async (req, res) => {
             return res.status(400).json({ message: 'No se subió ninguna imagen.' });
         }
 
-        // 👉 Verificar si el usuario es fotógrafo
         const userResult = await db.query(
-            'SELECT role_id FROM users WHERE id = $1',
+            'SELECT rol_id FROM auth.usuarios WHERE id = $1',
             [userId]
         );
 
@@ -25,24 +24,26 @@ export const uploadPhoto = async (req, res) => {
             return res.status(404).json({ message: 'Usuario no encontrado.' });
         }
 
-        const roleId = userResult.rows[0].role_id;
+        const roleId = userResult.rows[0].rol_id;
         if (roleId !== 5) {
             return res.status(403).json({ message: 'Solo fotógrafos pueden subir fotos.' });
         }
 
-        const filePath = `/uploads/${file.filename}`;
+        // Usamos el buffer directamente (no hay archivo en disco)
+        const fileBuffer = file.buffer;
 
         await db.query(
             'INSERT INTO fotografo.photos (photographer_id, file_name, file_path) VALUES ($1, $2, $3)',
-            [userId, file.filename, filePath]
+            [userId, file.originalname, fileBuffer]
         );
 
-        res.status(200).json({ message: 'Foto subida correctamente.', filePath });
+        res.status(200).json({ message: 'Foto subida correctamente.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al subir la foto.' });
     }
 };
+
 
 export const getPhotosByPhotographer = async (req, res) => {
     try {
