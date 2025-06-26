@@ -12,7 +12,7 @@ router.post('/login', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT nombre_completo, rol_id 
+            `SELECT id, nombre_completo, rol_id 
        FROM auth.usuarios 
        WHERE email = $1 AND password = $2
        LIMIT 1`,
@@ -26,6 +26,7 @@ router.post('/login', async (req, res) => {
         const user = result.rows[0];
 
         res.json({
+            id: user.id,
             nombre: user.nombre_completo,
             rol_id: user.rol_id  // ✅ Solo mandamos el ID numérico
         });
