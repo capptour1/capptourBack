@@ -34,6 +34,6 @@ const upload = multer({
 
 // Endpoints
 router.post('/upload', upload.single('photo'), uploadPhoto);
-router.get('/byUser/:userId', getPhotosByPhotographer);
+router.post('/byUser', getPhotosByPhotographer);
 
 export default router;
