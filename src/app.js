@@ -1,5 +1,4 @@
 import express from 'express';
-import bodyParser from 'body-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import routes from './routes/index.js';
@@ -12,9 +11,9 @@ const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Middlewares
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// ✅ Middlewares modernos
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Conexión a la base de datos
 pool.connect()
@@ -32,6 +31,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // 👉 Tus rutas API generales
 app.use('/api', routes);
 
+// Escuchar servidor
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
