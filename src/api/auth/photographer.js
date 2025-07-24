@@ -104,4 +104,39 @@ router.put('/availability', async (req, res) => {
     }
 });
 
+// Nuevo endpoint para listar fotógrafos
+// Este endpoint obtiene una lista de fotógrafos con sus detalles
+router.get('/list', async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        const result = await client.query(`
+      SELECT 
+        u.id,
+        u.nombre_completo,
+        u.email,
+        u.telefono,
+        f.descripcion,
+        f.tarifas,
+        f.hoja_vida,
+        f.is_active
+      FROM auth.usuarios u
+      INNER JOIN fotografo.fotografos f ON u.id = f.usuario_id
+      WHERE u.rol_id = 5
+    `);
+
+        const rows = result.rows.map(row => ({
+            ...row,
+            tarifas: typeof row.tarifas === 'string' ? JSON.parse(row.tarifas) : row.tarifas
+        }));
+
+        res.json(rows);
+    } catch (err) {
+        console.error('Error al obtener fotógrafos:', err);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    } finally {
+        client.release();
+    }
+});
+
 export default router;
