@@ -3,76 +3,81 @@ import pool from '../db.js';
 
 const router = express.Router();
 
-// POST /api/bookings - Crear reserva (Versión mejorada)
+// POST /api/bookings - Crear reserva
+// POST /api/bookings - Crear reserva (Versión Final)
 router.post('/', async (req, res) => {
     const { fotografo_id, cliente_id, fecha_hora, duracion } = req.body;
-
-    // Validación básica de campos requeridos
-    if (!fotografo_id || !cliente_id || !fecha_hora || !duracion) {
-        return res.status(400).json({ error: 'Faltan campos requeridos' });
-    }
+    const client = await pool.connect();
 
     try {
-        // 1. Verificar existencia y estado del fotógrafo
-        const fotografo = await pool.query(
-            `SELECT id, is_active FROM fotografo.fotografos 
-             WHERE id = $1`,
+        await client.query('BEGIN');
+
+        // 1. Verificar existencia del fotógrafo (por usuario_id)
+        const fotografo = await client.query(
+            `SELECT usuario_id FROM fotografo.fotografos 
+             WHERE usuario_id = $1 FOR UPDATE`,
             [fotografo_id]
         );
 
         if (fotografo.rows.length === 0) {
-            return res.status(404).json({ error: 'Fotógrafo no encontrado' });
-        }
-
-        if (!fotografo.rows[0].is_active) {
+            await client.query('ROLLBACK');
             return res.status(400).json({
-                error: 'Fotógrafo no disponible',
-                solution: 'Active su perfil en la configuración'
+                error: 'Fotógrafo no existe',
+                detalle: `No se encontró usuario_id=${fotografo_id} en fotografos`
             });
         }
 
-        // 2. Verificar solapamiento de horarios (versión mejorada)
-        const solapamiento = await pool.query(
-            `SELECT id FROM fotografo.reservas 
-             WHERE fotografo_id = $1 
-             AND fecha_hora BETWEEN ($2::timestamp - interval '1 minute' * $3) 
-                             AND ($2::timestamp + interval '1 minute' * $3)`,
-            [fotografo_id, fecha_hora, duracion]
+        // 2. Verificar existencia del cliente
+        const cliente = await client.query(
+            `SELECT id FROM auth.usuarios WHERE id = $1 FOR UPDATE`,
+            [cliente_id]
         );
 
-        if (solapamiento.rows.length > 0) {
+        if (cliente.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(400).json({
-                error: 'Conflicto de horario',
-                details: 'Ya existe una reserva que se solapa con este horario'
+                error: 'Cliente no existe',
+                detalle: `No se encontró id=${cliente_id} en usuarios`
             });
         }
 
-        // 3. Crear reserva con transacción
-        const reserva = await pool.query(
+        // 3. Insertar reserva
+        const result = await client.query(
             `INSERT INTO fotografo.reservas 
              (fotografo_id, cliente_id, fecha_hora, duracion, estado)
-             VALUES ($1, $2, $3, $4, 'Pendiente')
-             RETURNING *`,
+             VALUES ($1, $2, $3, $4, 'pendiente') RETURNING *`,
             [fotografo_id, cliente_id, fecha_hora, duracion]
         );
 
-        // 4. Actualizar caché si es necesario
-        // (Aquí podrías invalidar cachés de calendario si usas)
-
-        res.status(201).json({
-            success: true,
-            reserva: reserva.rows[0],
-            message: 'Reserva creada exitosamente'
-        });
+        await client.query('COMMIT');
+        res.status(201).json(result.rows[0]);
 
     } catch (error) {
-        console.error('Error en POST /bookings:', error);
-        res.status(500).json({
-            error: 'Error al crear reserva',
-            details: error.message // Solo en desarrollo, no en producción
-        });
+        await client.query('ROLLBACK');
+
+        if (error.code === '23503') { // Violación FK
+            res.status(400).json({
+                error: 'Error de referencia',
+                solucion: 'Verifica que el fotógrafo y cliente existan',
+                datos: { fotografo_id, cliente_id }
+            });
+        } else {
+            console.error('Error:', error);
+            res.status(500).json({ error: 'Error interno' });
+        }
+    } finally {
+        client.release();
     }
 });
+
+
+// 👇 Helper para obtener fotógrafos disponibles
+async function getFotografosDisponibles(client) {
+    const result = await client.query(
+        `SELECT id, usuario_id FROM fotografo.fotografos WHERE is_active = true`
+    );
+    return result.rows;
+}
 
 // GET /api/bookings/clientes - Obtener lista de clientes
 router.get('/clientes', async (req, res) => {

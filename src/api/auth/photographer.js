@@ -6,6 +6,8 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+router.use(express.json()); // Middleware esencial
+
 // Endpoint para actualizar perfil (existente)
 router.post('/actualizar', upload.single('hoja_vida'), async (req, res) => {
     const client = await pool.connect();
@@ -56,17 +58,49 @@ router.get('/availability', async (req, res) => {
 // Nuevo endpoint para actualizar disponibilidad
 router.put('/availability', async (req, res) => {
     const { userId, is_active } = req.body;
-    if (!userId) return res.status(400).json({ error: 'Falta userId' });
+
+    // Validación reforzada
+    if (!userId || is_active === undefined) {
+        return res.status(400).json({
+            error: 'Datos requeridos',
+            solution: 'Enviar {userId: number, is_active: string}'
+        });
+    }
 
     try {
-        await pool.query(
-            'UPDATE fotografo.fotografos SET is_active = $1 WHERE usuario_id = $2',
-            [is_active, userId]
+        // Conversión infalible a booleano
+        const isActive = String(is_active).toLowerCase() === 'true';
+
+        // Query con nombre de columna exacto (ajusta si tu columna se llama diferente)
+        const result = await pool.query(
+            `UPDATE fotografo.fotografos 
+       SET is_active = $1, 
+           updated_at = NOW()
+       WHERE usuario_id = $2
+       RETURNING is_active`,
+            [isActive, userId]
         );
-        res.json({ success: true, is_active });
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Fotógrafo no encontrado' });
+        }
+
+        res.json({
+            success: true,
+            is_active: result.rows[0].is_active
+        });
+
     } catch (error) {
-        console.error('Error PUT /availability:', error);
-        res.status(500).json({ error: 'Error al actualizar disponibilidad' });
+        console.error('Error en DB:', {
+            message: error.message,
+            query: error.query // Muestra la consulta fallida
+        });
+
+        res.status(500).json({
+            error: 'Error interno',
+            hint: 'Revisar logs del servidor',
+            detail: process.env.NODE_ENV === 'development' ? error.message : null
+        });
     }
 });
 
