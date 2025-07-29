@@ -50,11 +50,14 @@ router.post('/cercanos', async (req, res) => {
     try {
         console.log(`🔎 Buscando fotógrafos cerca de (${userLat}, ${userLng}) en un radio de ${radiusKm} km`);
         const result = await pool.query(`
-            SELECT ua.usuario_id, u.nombre_completo, ua.latitude, ua.longitude, ua.actualizada_en
+            SELECT ua.usuario_id, u.nombre_completo, f.descripcion, f.tarifas,
+            ua.latitude, ua.longitude, ua.actualizada_en
             FROM auth.ubicaciones_activas ua
             JOIN auth.usuarios u ON ua.usuario_id = u.id
-            WHERE u.rol_id = 5 AND
-            ua.actualizada_en > NOW() - INTERVAL '2 minutes' 
+            JOIN fotografo.fotografos f ON ua.usuario_id = f.usuario_id
+            WHERE u.rol_id = 5
+            AND ua.actualizada_en > NOW() - INTERVAL '2 minutes' 
+            AND f.is_active = true
             ORDER BY ua.actualizada_en DESC
         `);
 
