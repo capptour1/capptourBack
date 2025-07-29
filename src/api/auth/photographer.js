@@ -104,8 +104,6 @@ router.put('/availability', async (req, res) => {
     }
 });
 
-// Nuevo endpoint para listar fotógrafos
-// Este endpoint obtiene una lista de fotógrafos con sus detalles
 router.get('/list', async (req, res) => {
     const client = await pool.connect();
 
@@ -116,6 +114,7 @@ router.get('/list', async (req, res) => {
         u.nombre_completo,
         u.email,
         u.telefono,
+        f.id AS photographer_id,         -- 👈 necesario para traer sus fotos
         f.descripcion,
         f.tarifas,
         f.hoja_vida,
@@ -138,5 +137,6 @@ router.get('/list', async (req, res) => {
         client.release();
     }
 });
+
 
 export default router;
