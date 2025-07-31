@@ -8,6 +8,7 @@ import ubicacionRoutes from '../api/auth/ubicacion.js';
 import bookingsRoutes from '../api/bookings.js';
 import reservasRoutes from '../api/reservas.js';
 import photosUsersRoutes from '../api/users/photos.js';
+import sesionFotosRoutes from '../api/sesion_fotos.js';
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use('/ubicacion', ubicacionRoutes);
 router.use('/bookings', bookingsRoutes);
 router.use('/reservas', reservasRoutes);
 router.use('/users/photos', photosUsersRoutes);
+router.use('/sesion_fotos', sesionFotosRoutes);
 
 export default router;
