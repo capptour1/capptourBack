@@ -171,4 +171,131 @@ router.get('/disponibles', async (req, res) => {
     }
 });
 
+router.post('/solicitarInmediata', async (req, res) => {
+    const { usuario_id, fotografo_id } = req.body;
+
+    if (!usuario_id || !fotografo_id) {
+        return res.status(400).json({ error: 'Faltan parámetros: usuario_id y fotografo_id' });
+    }
+    console.log('📥 Solicitud de reserva inmediata recibida:', { usuario_id, fotografo_id });
+    const fecha_hora = new Date();
+    try {
+        const result = await pool.query(`
+            INSERT INTO fotografo.reservas (cliente_id, fecha_hora, fotografo_id, duracion, estado, es_inmediata)
+            VALUES ($1, $2, $3, 30, 'pendiente', true)
+            RETURNING *
+        `, [usuario_id, fecha_hora, fotografo_id]);
+        console.log('✅ Reserva inmediata creada:', result.rows[0]);
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al solicitar reserva inmediata' });
+    }
+});
+
+router.post('/verificar', async (req, res) => {
+    const { usuario_id, fotografo_id } = req.body;
+
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Falta el ID del usuario' });
+    }
+
+    //retornar solo solicitudes pendientes con menos de 10 segundos de antigüedad
+    try {
+        const result = await pool.query(`
+            SELECT * FROM fotografo.reservas
+            WHERE cliente_id = $1
+              AND fotografo_id = $2
+           -- AND fecha_hora > NOW() - INTERVAL '10 seconds'
+            AND es_inmediata = true
+            ORDER BY fecha_hora DESC
+            LIMIT 1
+        `, [usuario_id, fotografo_id]);
+
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al verificar disponibilidad' });
+    }
+});
+
+
+router.post('/cancelarInmediata', async (req, res) => {
+    const { reserva_id } = req.body;
+    console.log('📥 Solicitud de cancelación de reserva inmediata recibida:', { reserva_id });
+    if (!reserva_id) {
+        return res.status(400).json({ error: 'Falta el ID de la reserva' });
+    }
+
+    try {
+        const result = await pool.query(`
+            UPDATE fotografo.reservas
+            SET estado = 'cancelada'
+            WHERE id = $1 --AND es_inmediata = true
+            RETURNING *
+        `, [reserva_id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Reserva no encontrada o no es una reserva inmediata' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al cancelar reserva inmediata' });
+    }
+});
+
+router.post('/confirmarInmediata', async (req, res) => {
+    const { reserva_id } = req.body;
+    console.log('📥 Confirmación de reserva inmediata recibida:', { reserva_id });
+    if (!reserva_id) {
+        return res.status(400).json({ error: 'Falta el ID de la reserva' });
+    }
+
+    try {
+        const result = await pool.query(`
+            UPDATE fotografo.reservas
+            SET estado = 'confirmada'
+            WHERE id = $1 AND es_inmediata = true
+            RETURNING *
+        `, [reserva_id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Reserva no encontrada o no es una reserva inmediata' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al confirmar reserva inmediata' });
+    }
+});
+
+router.post('/verificarFotografo', async (req, res) => {
+    const { usuario_id } = req.body;
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Falta el ID del fotógrafo' });
+    }
+
+    try {
+        const result = await pool.query(`
+            SELECT fr.*, u.nombre_completo AS nombre_fotografo, uu.nombre_completo AS nombre_cliente
+            FROM fotografo.reservas fr
+            JOIN auth.usuarios u ON fr.fotografo_id = u.id
+            JOIN auth.usuarios uu ON fr.cliente_id = uu.id
+            WHERE fr.fotografo_id = $1
+              AND fr.estado = 'pendiente'
+             -- AND fr.fecha_hora > NOW() - INTERVAL '10 seconds'
+            ORDER BY fr.fecha_hora DESC;
+        `, [usuario_id]);
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al verificar fotógrafo' });
+    }
+});
+
 export default router;
