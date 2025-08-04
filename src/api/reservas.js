@@ -13,7 +13,7 @@ router.post('/', async (req, res) => {
 
         // 🔍 Buscar ID real del fotógrafo (por usuario_id)
         const resultFotografo = await client.query(
-            'SELECT id FROM fotografo.fotografos WHERE usuario_id = $1',
+            'SELECT id, usuario_id FROM fotografo.fotografos WHERE id = $1',
             [fotografo_id]
         );
 
@@ -23,6 +23,7 @@ router.post('/', async (req, res) => {
         }
 
         const fotografoIdReal = resultFotografo.rows[0].id;
+        const fotografoUsuarioId = resultFotografo.rows[0].usuario_id;
 
         // ⚠️ Verificar si el fotógrafo ya tiene una reserva en ese horario
         const check = await client.query(
@@ -47,9 +48,9 @@ router.post('/', async (req, res) => {
 
         // 🔁 Duplicar en fotografo.reservas
         await client.query(
-            `INSERT INTO fotografo.reservas (reserva_id, fotografo_id)
-             VALUES ($1, $2)`,
-            [nuevaReserva.id, fotografoIdReal]
+            `INSERT INTO fotografo.reservas (fotografo_id, cliente_id, fecha_hora, duracion, reserva_id)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [fotografoUsuarioId, usuario_id, new Date(`${fecha} ${hora}`), 30, nuevaReserva.id]
         );
 
         await client.query('COMMIT');
