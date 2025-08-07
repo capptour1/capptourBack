@@ -5,7 +5,6 @@ import routes from './routes/index.js';
 import pool from './db.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Necesario para __dirname en ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -31,7 +30,5 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // 👉 Tus rutas API generales
 app.use('/api', routes);
 
-// Escuchar servidor
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// ❌ Ya no escuchamos aquí. El `socketServer.js` lo hará.
+export default app;
