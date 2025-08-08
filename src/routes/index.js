@@ -5,6 +5,11 @@ import authRoutes from '../api/auth/login.js';
 import photosRoutes from '../api/photos.js';
 import photographerRoutes from '../api/auth/photographer.js';
 import ubicacionRoutes from '../api/auth/ubicacion.js';
+import bookingsRoutes from '../api/bookings.js';
+import reservasRoutes from '../api/reservas.js';
+import photosUsersRoutes from '../api/users/photos.js';
+import sesionFotosRoutes from '../api/sesion_fotos.js';
+import chatRoutes from '../api/chat/chat.routes.js';
 
 const router = express.Router();
 
@@ -14,5 +19,10 @@ router.use('/auth', authRoutes);
 router.use('/photos', photosRoutes);
 router.use('/photographer', photographerRoutes);
 router.use('/ubicacion', ubicacionRoutes);
+router.use('/bookings', bookingsRoutes);
+router.use('/reservas', reservasRoutes);
+router.use('/users/photos', photosUsersRoutes);
+router.use('/sesion_fotos', sesionFotosRoutes);
+router.use('/chat', chatRoutes);
 
 export default router;
