@@ -158,4 +158,26 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+router.post('/cancelarInmediatasUsuario', async (req, res) => {
+    const { usuario_id } = req.body;
+
+    console.log('📥 POST /cancelarInmediatasUsuario recibido');
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Falta el ID de usuario' });
+    }
+
+    try {
+        await pool.query(`
+            UPDATE fotografo.reservas
+            SET estado = 'cancelada'
+            WHERE cliente_id = $1 AND estado = 'pendiente' AND es_inmediata = true
+        `, [usuario_id]);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error en POST /cancelarInmediatasUsuario:', error);
+        res.status(500).json({ error: 'Error al cancelar reservas' });
+    }
+});
+
 export default router;
