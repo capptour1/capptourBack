@@ -11,26 +11,39 @@ router.post('/', async (req, res) => {
         nombre,
         descripcion,
         url_repositorio,
+        tarifas,
         observacion
     } = req.body;
 
+    console.log('Datos recibidos para crear sesión de fotos:', {
+        reserva_id,
+        nombre,
+        descripcion,
+        url_repositorio,
+        tarifas,
+        observacion
+    });
+
     try {
-        if (!reserva_id || !nombre || !url_repositorio) {
-            return res.status(400).json({ error: 'Faltan campos requeridos' });
+        
+        for (const tarifa of tarifas) {
+            tarifa.precio = tarifa.precio || 0;
+            tarifa.producto = tarifa.producto || '';
+            tarifa.cantidad_fotos = tarifa.cantidad_fotos || 0;
         }
 
         await client.query('BEGIN');
 
-        // 1️⃣ Insertar sesión
         const insertQuery = `
             INSERT INTO fotografo.sesion_fotos (
                 reserva_id,
                 nombre,
                 descripcion,
                 url_repositorio,
-                observacion
+                observacion,
+                tarifas
             )
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *;
         `;
 
@@ -39,7 +52,8 @@ router.post('/', async (req, res) => {
             nombre,
             descripcion,
             url_repositorio,
-            observacion || null
+            observacion || null,
+            tarifas && tarifas.length ? JSON.stringify(tarifas) : null
         ]);
 
         // 2️⃣ Cambiar estado de la reserva a Finalizada
