@@ -25,7 +25,7 @@ router.post('/', async (req, res) => {
     });
 
     try {
-        
+
         for (const tarifa of tarifas) {
             tarifa.precio = tarifa.precio || 0;
             tarifa.producto = tarifa.producto || '';
@@ -123,6 +123,39 @@ router.get('/:reserva_id', async (req, res) => {
 
     } catch (err) {
         console.error('❌ Error al obtener datos del fotógrafo:', err);
+        res.status(500).json({ error: 'Error interno al obtener sesión' });
+    } finally {
+        client.release();
+    }
+});
+
+// 📥 Obtener detalle de sesión de fotos (incluye IDs para pago)
+router.get('/detalle/:sesion_id', async (req, res) => {
+    const client = await pool.connect();
+    const { sesion_id } = req.params;
+
+    try {
+        const query = `
+            SELECT 
+                sf.id AS sesion_fotos_id,
+                sf.reserva_id,
+                r.cliente_id,
+                r.fotografo_id
+            FROM fotografo.sesion_fotos sf
+            INNER JOIN fotografo.reservas r ON sf.reserva_id = r.id
+            WHERE sf.id = $1
+            LIMIT 1;
+        `;
+
+        const result = await client.query(query, [sesion_id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Sesión no encontrada' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Error al obtener detalle de sesión:', err);
         res.status(500).json({ error: 'Error interno al obtener sesión' });
     } finally {
         client.release();
