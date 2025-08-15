@@ -149,8 +149,50 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/bookings/:id - Eliminar reserva
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
+    const { motivo, tipoUsuario } = req.body;
+    console.log('📥 DELETE /bookings recibido:', { id, motivo, tipoUsuario });
     try {
-        await pool.query('DELETE FROM fotografo.reservas WHERE id = $1', [id]);
+
+        // Actualiza el estado de la reserva
+        await pool.query(
+            `UPDATE fotografo.reservas 
+            SET estado = 'cancelada', datos = $1 
+            WHERE id = $2`,
+            [JSON.stringify({ motivo, tipoUsuario }), id]
+        );
+
+        // obtener la informacion de la reserva
+        const reserva = await pool.query(
+            `SELECT * FROM fotografo.reservas WHERE id = $1`,
+            [id]
+        );
+
+        console.log('Información de la reserva:', reserva.rows[0]);
+
+        // obtener todas las reservas canceladas de ese fotógrafo
+        const reservasCanceladas = await pool.query(
+            `SELECT * FROM fotografo.reservas WHERE fotografo_id = $1 AND estado = 'cancelada'`,
+            [reserva.rows[0].fotografo_id]
+        );
+
+        // si las reservas canceladas son mas de 2, inhabilitar al fotógrafo
+        if (reservasCanceladas.rows.length > 2) {
+            await pool.query(
+                `UPDATE auth.usuarios SET estado = 'I' WHERE id = $1`,
+                [reserva.rows[0].fotografo_id]
+            );
+            console.log('📥 Fotógrafo inhabilitado:', reserva.rows[0].fotografo_id);
+        }
+
+        if (reservasCanceladas.rows.length > 2) {
+            await pool.query(
+                `UPDATE auth.usuarios SET estado = 'I' WHERE id = $1`,
+                [reserva.rows[0].fotografo_id]
+            );
+            console.log('📥 Fotógrafo inhabilitado:', reserva.rows[0].fotografo_id);
+        }
+
+
         res.json({ success: true });
     } catch (error) {
         console.error('Error en DELETE /bookings:', error);

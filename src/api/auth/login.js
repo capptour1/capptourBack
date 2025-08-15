@@ -21,6 +21,10 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
+        if (user.estado !== 'activo') {
+            return res.status(403).json({ error: 'Usuario inactivo' });
+        }
+
         const token = jwt.sign(
             { userId: user.id, role: user.rol_id },
             SECRET_KEY,
