@@ -90,18 +90,58 @@ router.get('/usuario/:id', async (req, res) => {
 // 📌 Eliminar reserva (de ambas tablas)
 router.delete('/:id', async (req, res) => {
     const client = await pool.connect();
+
+    const { id } = req.params;
+    const { motivo, tipoUsuario } = req.body;
+
     try {
         await client.query('BEGIN');
 
+        // await client.query(
+        //     'DELETE FROM fotografo.reservas WHERE reserva_id = $1',
+        //     [req.params.id]
+        // );
+
+        // await client.query(
+        //     'DELETE FROM reserva.reservas WHERE id = $1',
+        //     [req.params.id]
+        // );
+
+        // actualizar el estado a cancelada
         await client.query(
-            'DELETE FROM fotografo.reservas WHERE reserva_id = $1',
+            `UPDATE reserva.reservas SET estado = 'cancelada' WHERE id = $1`,
             [req.params.id]
         );
 
         await client.query(
-            'DELETE FROM reserva.reservas WHERE id = $1',
-            [req.params.id]
+            `UPDATE fotografo.reservas 
+            SET estado = 'cancelada', datos = $1 
+            WHERE reserva_id = $2`,
+            [JSON.stringify({ motivo, tipoUsuario }), id]
         );
+
+        const reserva = await pool.query(
+            `SELECT * FROM fotografo.reservas WHERE reserva_id = $1`,
+            [id]
+        );
+
+        console.log('Información de la reserva:', reserva.rows[0]);
+
+        // obtener todas las reservas canceladas de ese fotógrafo
+        const reservasCanceladas = await pool.query(
+            `SELECT * FROM fotografo.reservas WHERE cliente_id = $1 AND estado = 'cancelada'`,
+            [reserva.rows[0].cliente_id]
+        );
+
+        if (reservasCanceladas.rows.length > 2) {
+            await pool.query(
+                `UPDATE auth.usuarios SET estado = 'I' WHERE id = $1`,
+                [reserva.rows[0].cliente_id]
+            );
+            console.log('📥 Cliente inhabilitado:', reserva.rows[0].cliente_id);
+        }
+
+
 
         await client.query('COMMIT');
         res.sendStatus(204);
@@ -233,7 +273,7 @@ router.post('/cancelarInmediata', async (req, res) => {
         const result = await pool.query(`
             UPDATE fotografo.reservas
             SET estado = 'cancelada'
-            WHERE id = $1 --AND es_inmediata = true
+            WHERE id = $1 AND es_inmediata = true
             RETURNING *
         `, [reserva_id]);
 

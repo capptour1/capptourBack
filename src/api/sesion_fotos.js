@@ -11,26 +11,39 @@ router.post('/', async (req, res) => {
         nombre,
         descripcion,
         url_repositorio,
+        tarifas,
         observacion
     } = req.body;
 
+    console.log('Datos recibidos para crear sesión de fotos:', {
+        reserva_id,
+        nombre,
+        descripcion,
+        url_repositorio,
+        tarifas,
+        observacion
+    });
+
     try {
-        if (!reserva_id || !nombre || !url_repositorio) {
-            return res.status(400).json({ error: 'Faltan campos requeridos' });
+
+        for (const tarifa of tarifas) {
+            tarifa.precio = tarifa.precio || 0;
+            tarifa.producto = tarifa.producto || '';
+            tarifa.cantidad_fotos = tarifa.cantidad_fotos || 0;
         }
 
         await client.query('BEGIN');
 
-        // 1️⃣ Insertar sesión
         const insertQuery = `
             INSERT INTO fotografo.sesion_fotos (
                 reserva_id,
                 nombre,
                 descripcion,
                 url_repositorio,
-                observacion
+                observacion,
+                tarifas
             )
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *;
         `;
 
@@ -39,7 +52,8 @@ router.post('/', async (req, res) => {
             nombre,
             descripcion,
             url_repositorio,
-            observacion || null
+            observacion || null,
+            tarifas && tarifas.length ? JSON.stringify(tarifas) : null
         ]);
 
         // 2️⃣ Cambiar estado de la reserva a Finalizada
@@ -109,6 +123,39 @@ router.get('/:reserva_id', async (req, res) => {
 
     } catch (err) {
         console.error('❌ Error al obtener datos del fotógrafo:', err);
+        res.status(500).json({ error: 'Error interno al obtener sesión' });
+    } finally {
+        client.release();
+    }
+});
+
+// 📥 Obtener detalle de sesión de fotos (incluye IDs para pago)
+router.get('/detalle/:sesion_id', async (req, res) => {
+    const client = await pool.connect();
+    const { sesion_id } = req.params;
+
+    try {
+        const query = `
+            SELECT 
+                sf.id AS sesion_fotos_id,
+                sf.reserva_id,
+                r.cliente_id,
+                r.fotografo_id
+            FROM fotografo.sesion_fotos sf
+            INNER JOIN fotografo.reservas r ON sf.reserva_id = r.id
+            WHERE sf.id = $1
+            LIMIT 1;
+        `;
+
+        const result = await client.query(query, [sesion_id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Sesión no encontrada' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Error al obtener detalle de sesión:', err);
         res.status(500).json({ error: 'Error interno al obtener sesión' });
     } finally {
         client.release();
