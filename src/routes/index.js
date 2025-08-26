@@ -10,6 +10,7 @@ import reservasRoutes from '../api/reservas.js';
 import photosUsersRoutes from '../api/users/photos.js';
 import sesionFotosRoutes from '../api/sesion_fotos.js';
 import chatRoutes from '../api/chat/chat.routes.js';
+import adminRoutes from '../api/admin/admin.routes.js';
 
 const router = express.Router();
 
@@ -24,5 +25,5 @@ router.use('/reservas', reservasRoutes);
 router.use('/users/photos', photosUsersRoutes);
 router.use('/sesion_fotos', sesionFotosRoutes);
 router.use('/chat', chatRoutes);
-
+router.use('/admin', adminRoutes);
 export default router;
