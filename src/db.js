@@ -3,15 +3,14 @@ import pkg from 'pg';
 
 const { Pool } = pkg;
 
-// ✅ CONEXIÓN CON CONTRASEÑA CORRECTA
+// ✅ CONTRASEÑA CORRECTA DE RAILWAY
 const getConnectionConfig = () => {
-  // URL con la contraseña ORIGINAL que me diste
-  const railwayDbUrl = 'postgresql://postgres:npg_q9jxE7PcVRDH@nozomi.proxy.rlwy.net:30044/railway';
-
+  const railwayDbUrl = 'postgresql://postgres:YAuCnaJxZm0IFpBmsuyyQvzhLceqL1VA@nozomi.proxy.rlwy.net:30044/railway';
+  
   console.log('🔄 Usando URL pública de Railway');
   return {
     connectionString: railwayDbUrl,
-    ssl: {
+    ssl: { 
       rejectUnauthorized: false,
       require: true
     }
@@ -24,12 +23,10 @@ const pool = new Pool(getConnectionConfig());
 pool.connect()
   .then(client => {
     console.log('✅ Conexión a la base de datos exitosa (Railway)');
-    console.log('🔧 Contraseña correcta');
     client.release();
   })
   .catch(err => {
-    console.error('❌ Error al conectar a la base de datos:', err.message);
-    console.log('🔍 URL utilizada:', 'postgresql://postgres:npg_q9jxE7PcVRDH@nozomi.proxy.rlwy.net:30044/railway');
+    console.error('❌ Error al conectar:', err.message);
   });
 
 export default pool;
