@@ -2,7 +2,9 @@
   "type": "module",
   "scripts": {
     "start": "node socketServer.js",
-    "dev": "nodemon socketServer.js"
+    "dev": "nodemon socketServer.js",
+    "build": "npm install",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "body-parser": "^2.2.0",

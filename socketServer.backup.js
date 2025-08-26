@@ -1,40 +1,21 @@
-// socketServer.js - Servidor Socket.IO con manejo de CORS y errores
-
+// socketServer.js
 import { Server } from 'socket.io';
 import http from 'http';
 import app from './src/app.js';
-import pool from './src/db.js';
-import 'dotenv/config'; // 👈 AGREGAR ESTO
+import pool from './src/db.js'; // Asegúrate de que la ruta sea correcta
 
-// 🟢 Variables de entorno para producción
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-const NODE_ENV = process.env.NODE_ENV || "development";
-const PORT = process.env.PORT || 3000;
-
-console.log('🔄 Ambiente:', NODE_ENV);
-console.log('🌐 Frontend URL:', FRONTEND_URL);
-console.log('🚀 Iniciando servidor en puerto:', PORT);
+// 🟢 Confirmación clara de que se está ejecutando este archivo
+console.log('✅ Ejecutando desde socketServer.js');
 
 // Crear servidor HTTP base con Express
 const server = http.createServer(app);
 
-// ✅ Configuración mejorada de CORS para producción
+// Inicializar Socket.IO encima del servidor HTTP
 const io = new Server(server, {
     cors: {
-        origin: NODE_ENV === "production"
-            ? [
-                FRONTEND_URL,
-                "https://tu-app-flutter.com",
-                "http://localhost:3000", // Para desarrollo
-                "http://192.168.1.6:3000" // Tu IP local por si acaso
-            ]
-            : "*",
-        methods: ['GET', 'POST', 'PUT', 'DELETE'],
-        credentials: true,
-        allowedHeaders: ['Content-Type', 'Authorization']
+        origin: '*',
+        methods: ['GET', 'POST'],
     },
-    path: '/socket.io/', // 👈 IMPORTANTE para Railway
-    transports: ['websocket', 'polling'] // 👈 Ambos métodos
 });
 
 // Almacenar usuarios conectados
@@ -61,6 +42,7 @@ io.on('connection', (socket) => {
 
             // Enviar mensaje al destinatario si está conectado
             const receptorSocketId = usuariosConectados.get(to);
+
             if (receptorSocketId) {
                 io.to(receptorSocketId).emit('receive_message', {
                     from,
@@ -71,13 +53,9 @@ io.on('connection', (socket) => {
             } else {
                 console.log(`🔕 Usuario ${to} no está conectado`);
             }
-
         } catch (error) {
             console.error('❌ Error al guardar o enviar mensaje:', error);
-            socket.emit('error_message', {
-                message: 'No se pudo enviar el mensaje.',
-                error: error.message
-            });
+            socket.emit('error_message', { message: 'No se pudo enviar el mensaje.' });
         }
     });
 
@@ -90,22 +68,10 @@ io.on('connection', (socket) => {
             }
         }
     });
-
-    // Manejar errores de socket
-    socket.on('error', (error) => {
-        console.error('❌ Error de socket:', error);
-    });
 });
 
-// Manejar errores del servidor
-server.on('error', (error) => {
-    console.error('❌ Error del servidor:', error);
-});
-
-// Lanzar servidor
-server.listen(PORT, '0.0.0.0', () => { // 👈 '0.0.0.0' para Railway
+// Lanzar servidor en puerto 3000
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
     console.log(`🚀 Socket.IO server corriendo en puerto ${PORT}`);
-    console.log(`🌐 Ambiente: ${NODE_ENV}`);
 });
-
-export default io;
