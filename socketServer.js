@@ -1,4 +1,5 @@
 // socketServer.js
+//Ajustes completos para funcionamiento adecuado y despliegue a Railway
 import { Server } from 'socket.io';
 import http from 'http';
 import app from './src/app.js';
