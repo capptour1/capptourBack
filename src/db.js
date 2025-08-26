@@ -3,30 +3,33 @@ import pkg from 'pg';
 
 const { Pool } = pkg;
 
-// ✅ CONEXIÓN INTELIGENTE (funciona en local y producción)
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || {
-    // Fallback para desarrollo local
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    ssl: process.env.NODE_ENV === 'production'
-      ? { rejectUnauthorized: false }
-      : false
-  }
-});
+// ✅ CONEXIÓN SEGURA para Railway (usando URL PÚBLICA)
+const getConnectionConfig = () => {
+  // URL PÚBLICA de Railway
+  const railwayDbUrl = 'postgresql://postgres:YAuCnaJxZmOIFpBmsuyyQvzhLceqLIVA@nozomi.proxy.rlwy.net:30044/railway';
+  
+  console.log('🔄 Usando DATABASE_URL pública de Railway');
+  return {
+    connectionString: railwayDbUrl,
+    ssl: { 
+      rejectUnauthorized: false,
+      require: true
+    }
+  };
+};
+
+const pool = new Pool(getConnectionConfig());
 
 // Verificar conexión
 pool.connect()
   .then(client => {
-    console.log('✅ Conexión a la base de datos exitosa');
-    console.log('🔄 Modo:', process.env.NODE_ENV || 'development');
+    console.log('✅ Conexión a la base de datos exitosa (Railway)');
+    console.log('🔧 Usando URL pública');
     client.release();
   })
   .catch(err => {
     console.error('❌ Error al conectar a la base de datos:', err.message);
+    console.log('🔍 URL utilizada:', 'postgresql://postgres:YAuCnaJxZmOIFpBmsuyyQvzhLceqLIVA@nozomi.proxy.rlwy.net:30044/railway');
   });
 
 export default pool;
