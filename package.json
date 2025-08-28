@@ -2,17 +2,22 @@
   "type": "module",
   "scripts": {
     "start": "node socketServer.js",
-    "dev": "nodemon socketServer.js"
+    "dev": "nodemon socketServer.js",
+    "build": "npm install",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "body-parser": "^2.2.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.1",
+    "multer": "^2.0.2",
     "pg": "^8.16.2",
+    "qrcode": "^1.5.4",
     "sharp": "^0.34.2",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "uuid": "^11.1.0",
+    "uuidv4": "^6.2.13"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
