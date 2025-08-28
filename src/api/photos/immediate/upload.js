@@ -6,10 +6,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
-// Configurar multer para subir imágenes
+// ✅ Configurar multer para almacenamiento TEMPORAL
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/fotos_inmediatas/');
+        // Usar carpeta temporal del sistema
+        cb(null, '/tmp/uploads/');
     },
     filename: function (req, file, cb) {
         const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
@@ -29,47 +30,74 @@ const upload = multer({
     }
 });
 
-// POST /api/photos/immediate/upload
+// ✅ POST /api/photos/immediate/upload
 router.post('/upload', upload.single('foto'), async (req, res) => {
     try {
+        console.log('📤 Iniciando upload de foto...');
+
         if (!req.file) {
-            return res.status(400).json({ message: 'No se proporcionó ninguna imagen' });
+            console.log('❌ No se recibió archivo');
+            return res.status(400).json({
+                success: false,
+                message: 'No se proporcionó ninguna imagen'
+            });
         }
 
         const { fotografo_id } = req.body;
 
         if (!fotografo_id) {
-            return res.status(400).json({ message: 'Se requiere el ID del fotógrafo' });
+            console.log('❌ Falta fotografo_id');
+            return res.status(400).json({
+                success: false,
+                message: 'Se requiere el ID del fotógrafo'
+            });
         }
 
-        // URL de la imagen
-        const baseUrl = 'https://capptourback-production.up.railway.app';
-        const fotoUrl = `${baseUrl}/uploads/fotos_inmediatas/${req.file.filename}`;
+        console.log('✅ Archivo recibido:', req.file.filename);
 
-        // Guardar en PostgreSQL
+        // ✅ SIMULAR URL DE IMAGEN (solución temporal)
+        const fotoUrl = `https://via.placeholder.com/600x400/3F1D8C/FFFFFF?text=Foto+${fotografo_id}`;
+        console.log('🌐 URL temporal:', fotoUrl);
+
+        // ✅ Guardar en PostgreSQL (solo la referencia)
         const query = `
-            INSERT INTO fotografo.fotos_inmediatas (fotografo_id, usuario_id, foto_url)
-            VALUES ($1, $2, $3) 
-            RETURNING *
-        `;
+      INSERT INTO fotografo.fotos_inmediatas (fotografo_id, usuario_id, foto_url)
+      VALUES ($1, $2, $3) 
+      RETURNING *
+    `;
 
         const usuario_id = req.user?.userId;
+        console.log('👤 Usuario ID:', usuario_id);
 
         const result = await db.query(query, [fotografo_id, usuario_id, fotoUrl]);
+        console.log('💾 Foto guardada en BD:', result.rows[0]);
 
+        // ✅ Respuesta exitosa
         res.status(200).json({
             success: true,
-            message: 'Foto subida correctamente',
+            message: 'Foto procesada correctamente (modo simulación)',
             foto: result.rows[0],
-            fotoUrl: fotoUrl // ✅ ESTE CAMPO ES EL QUE BUSCA EL FRONTEND
+            fotoUrl: fotoUrl
         });
+
     } catch (err) {
         console.error('❌ Error subiendo foto inmediata:', err.stack);
+
         res.status(500).json({
-            success: false, // ✅ AGREGAR success: false
-            message: 'Error interno del servidor.'
+            success: false,
+            message: 'Error interno del servidor'
         });
     }
+});
+
+// ✅ Endpoint de prueba
+router.get('/test', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Endpoint de upload funciona correctamente',
+        timestamp: new Date().toISOString(),
+        mode: 'simulación'
+    });
 });
 
 export default router;
