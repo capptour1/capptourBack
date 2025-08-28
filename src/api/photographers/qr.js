@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 
 const router = express.Router();
 
-// POST /api/photographers/qr/generate - Solo para fotógrafos (rol_id = 5)
+// POST /api/photographers/qr/generate - Solo para fotógrafos (role = 5)
 router.post('/generate', async (req, res) => {
     try {
         // ✅ VERIFICACIÓN DE USUARIO AUTENTICADO
@@ -12,9 +12,9 @@ router.post('/generate', async (req, res) => {
             return res.status(401).json({ error: 'Usuario no autenticado' });
         }
 
-        // ✅ VERIFICACIÓN DE ROL CORREGIDA (usar rol_id en lugar de role)
-        if (req.user.rol_id !== '5') {
-            console.log('🚫 Acceso denegado. Rol recibido:', req.user.rol_id);
+        // ✅ VERIFICACIÓN DE ROL CORREGIDA (usar 'role' en lugar de 'rol_id')
+        if (req.user.role !== '5') {
+            console.log('🚫 Acceso denegado. Rol recibido:', req.user.role);
             return res.status(403).json({ error: 'Acceso denegado. Solo fotógrafos pueden generar QR' });
         }
 
