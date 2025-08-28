@@ -31,8 +31,11 @@ router.use('/sesion_fotos', sesionFotosRoutes);
 router.use('/chat', chatRoutes);
 router.use('/admin', adminRoutes);
 router.use('/pagos', pagosRoutes);
+
+// ✅ RUTAS CORREGIDAS (sin duplicados)
 router.use('/photos/immediate/upload', immediateUploadRouter);
-router.use('/photos/immediate/immediate', immediateRouter);
+router.use('/photos/immediate', immediateRouter); // ← Quitar el "/immediate" duplicado
+
 router.use('/photographers/qr', qrRoutes);
 
 export default router;
