@@ -12,6 +12,9 @@ import sesionFotosRoutes from '../api/sesion_fotos.js';
 import chatRoutes from '../api/chat/chat.routes.js';
 import adminRoutes from '../api/admin/admin.routes.js';
 import pagosRoutes from '../api/photographers/pagos.js';
+import immediateUploadRouter from './api/photos/immediate/upload.js';
+import immediateRouter from './api/photos/immediate.js';
+import qrRoutes from './api/photographers/qr.js';
 
 const router = express.Router();
 
@@ -28,5 +31,8 @@ router.use('/sesion_fotos', sesionFotosRoutes);
 router.use('/chat', chatRoutes);
 router.use('/admin', adminRoutes);
 router.use('/pagos', pagosRoutes);
+router.use('/photos/immediate/upload', immediateUploadRouter);
+router.use('/photos/immediate', immediateRouter);
+router.use('/photographers/qr', qrRoutes);
 
 export default router;
