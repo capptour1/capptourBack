@@ -4,6 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import routes from './routes/index.js';
 import pool from './db.js';
+import jwt from 'jsonwebtoken'; // ✅ Añadir esta importación
 
 const app = express();
 
@@ -14,6 +15,23 @@ const __dirname = path.dirname(__filename);
 // ✅ Middlewares modernos
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ✅ MIDDLEWARE DE AUTENTICACIÓN JWT (FALTABA ESTO)
+app.use((req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token) {
+    jwt.verify(token, 'secret_key', (err, user) => {
+      if (!err) {
+        req.user = user; // ✅ Inyectar usuario en la request
+      }
+      next();
+    });
+  } else {
+    next();
+  }
+});
 
 // 📂 Crear carpeta uploads/comprobantes si no existe
 const uploadsDir = path.join(__dirname, '../uploads');
