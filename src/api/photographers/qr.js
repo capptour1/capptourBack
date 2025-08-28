@@ -12,24 +12,21 @@ router.post('/generate', async (req, res) => {
             return res.status(401).json({ error: 'Usuario no autenticado' });
         }
 
-        // ✅ DEBUG: Verificar tipo y valor del rol
-        console.log('🔍 TIPO DE ROL:', typeof req.user.role);
-        console.log('🔍 VALOR DE ROL:', req.user.role);
-        console.log('🔍 COMPARACIÓN CON 5:', req.user.role === 5);
-        console.log('🔍 COMPARACIÓN CON "5":', req.user.role === '5');
-
-        // ✅ VERIFICACIÓN DE ROL CORREGIDA (usar número 5 en lugar de string '5')
+        // ✅ VERIFICACIÓN DE ROL
         if (req.user.role !== 5) {
-            console.log('🚫 Acceso denegado. Rol recibido:', req.user.role, '(Tipo:', typeof req.user.role + ')');
+            console.log('🚫 Acceso denegado. Rol recibido:', req.user.role);
             return res.status(403).json({ error: 'Acceso denegado. Solo fotógrafos pueden generar QR' });
         }
 
         const usuarioId = req.user.userId;
         console.log('📸 Generando QR para usuario_id:', usuarioId);
 
-        // Obtener datos del fotógrafo
+        // ✅ CONSULTA CORREGIDA (sin foto_perfil)
         const query = `
-            SELECT f.id, f.nombre, f.foto_perfil, u.email 
+            SELECT 
+                f.id, 
+                u.nombre_completo AS nombre,
+                u.email 
             FROM fotografo.fotografos f
             INNER JOIN auth.usuarios u ON f.usuario_id = u.id
             WHERE f.usuario_id = $1
@@ -63,8 +60,8 @@ router.post('/generate', async (req, res) => {
             fotografo: {
                 id: fotografo.id,
                 nombre: fotografo.nombre,
-                foto_perfil: fotografo.foto_perfil,
                 email: fotografo.email
+                // ✅ foto_perfil removido porque no existe en la BD
             }
         });
     } catch (err) {
