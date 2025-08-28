@@ -12,9 +12,15 @@ router.post('/generate', async (req, res) => {
             return res.status(401).json({ error: 'Usuario no autenticado' });
         }
 
-        // ✅ VERIFICACIÓN DE ROL CORREGIDA (usar 'role' en lugar de 'rol_id')
-        if (req.user.role !== '5') {
-            console.log('🚫 Acceso denegado. Rol recibido:', req.user.role);
+        // ✅ DEBUG: Verificar tipo y valor del rol
+        console.log('🔍 TIPO DE ROL:', typeof req.user.role);
+        console.log('🔍 VALOR DE ROL:', req.user.role);
+        console.log('🔍 COMPARACIÓN CON 5:', req.user.role === 5);
+        console.log('🔍 COMPARACIÓN CON "5":', req.user.role === '5');
+
+        // ✅ VERIFICACIÓN DE ROL CORREGIDA (usar número 5 en lugar de string '5')
+        if (req.user.role !== 5) {
+            console.log('🚫 Acceso denegado. Rol recibido:', req.user.role, '(Tipo:', typeof req.user.role + ')');
             return res.status(403).json({ error: 'Acceso denegado. Solo fotógrafos pueden generar QR' });
         }
 
