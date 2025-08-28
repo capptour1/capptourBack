@@ -41,12 +41,16 @@ router.get('/photographer/:id', async (req, res) => {
     try {
         const fotografoId = req.params.id;
 
+        // ✅ CONSULTA CORREGIDA (usar columnas de la tabla usuarios)
         const query = `
-      SELECT f.id, f.nombre, f.foto_perfil, u.email 
-      FROM fotografo.fotografos f
-      INNER JOIN auth.usuarios u ON f.usuario_id = u.id
-      WHERE f.id = $1
-    `;
+            SELECT 
+                f.id, 
+                u.nombre_completo AS nombre,  -- ← De la tabla usuarios
+                u.email 
+            FROM fotografo.fotografos f
+            INNER JOIN auth.usuarios u ON f.usuario_id = u.id
+            WHERE f.id = $1
+        `;
 
         const result = await db.query(query, [fotografoId]);
 
@@ -59,8 +63,8 @@ router.get('/photographer/:id', async (req, res) => {
         res.status(200).json({
             id: fotografo.id,
             nombre: fotografo.nombre,
-            foto_perfil: fotografo.foto_perfil,
             email: fotografo.email
+            // ✅ foto_perfil removido porque no existe
         });
     } catch (err) {
         console.error('❌ Error obteniendo fotógrafo:', err.stack);
