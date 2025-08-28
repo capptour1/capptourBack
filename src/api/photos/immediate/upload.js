@@ -48,10 +48,10 @@ router.post('/upload', upload.single('foto'), async (req, res) => {
 
         // Guardar en PostgreSQL
         const query = `
-      INSERT INTO fotografo.fotos_inmediatas (fotografo_id, usuario_id, foto_url)
-      VALUES ($1, $2, $3) 
-      RETURNING *
-    `;
+            INSERT INTO fotografo.fotos_inmediatas (fotografo_id, usuario_id, foto_url)
+            VALUES ($1, $2, $3) 
+            RETURNING *
+        `;
 
         const usuario_id = req.user?.userId;
 
@@ -61,11 +61,14 @@ router.post('/upload', upload.single('foto'), async (req, res) => {
             success: true,
             message: 'Foto subida correctamente',
             foto: result.rows[0],
-            fotoUrl: fotoUrl
+            fotoUrl: fotoUrl // ✅ ESTE CAMPO ES EL QUE BUSCA EL FRONTEND
         });
     } catch (err) {
         console.error('❌ Error subiendo foto inmediata:', err.stack);
-        res.status(500).json({ message: 'Error interno del servidor.' });
+        res.status(500).json({
+            success: false, // ✅ AGREGAR success: false
+            message: 'Error interno del servidor.'
+        });
     }
 });
 
