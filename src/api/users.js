@@ -35,6 +35,51 @@ const upload = multer({
     }
   },
 });
+// --- Verificar código ---
+router.post('/verify', async (req, res) => {
+  const { email, codigo } = req.body;
+
+  if (!email || !codigo) {
+    return res.status(400).json({ error: 'Faltan datos: email y código' });
+  }
+
+  try {
+    // Verificar que el código sea correcto
+    const result = await pool.query(
+      `SELECT id, codigo_verificacion, verificado 
+       FROM auth.usuarios 
+       WHERE email = $1`,
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const usuario = result.rows[0];
+
+    if (usuario.verificado) {
+      return res.status(200).json({ message: 'Usuario ya verificado' });
+    }
+
+    if (usuario.codigo_verificacion !== codigo) {
+      return res.status(400).json({ error: 'Código inválido' });
+    }
+
+    // ✅ Actualizar como verificado
+    await pool.query(
+      `UPDATE auth.usuarios 
+       SET verificado = true, codigo_verificacion = NULL
+       WHERE email = $1`,
+      [email]
+    );
+
+    res.json({ message: 'Usuario verificado correctamente' });
+  } catch (err) {
+    console.error('Error al verificar código:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 
 // --- Ruta de registro normal (sin archivo) ---
 router.post('/', async (req, res) => {
@@ -60,11 +105,11 @@ router.post('/', async (req, res) => {
 
     // Enviar el correo
     await transporter.sendMail({
-      from: `"Soporte Nubi" <${process.env.EMAIL_USER}>`,
+      from: `"Soporte capp" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Código de verificación',
       html: `
-        <h2>¡Bienvenido a Nubi!</h2>
+        <h2>¡Bienvenido a Capptour!</h2>
         <p>Tu código de verificación es:</p>
         <h1>${codigo}</h1>
         <p>Este código expira en 15 minutos.</p>
