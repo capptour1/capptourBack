@@ -80,6 +80,40 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
+// --- Reenviar código ---
+router.post('/resend-code', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Falta el email' });
+  }
+
+  try {
+    // Generar nuevo código
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Guardar en la DB
+    await pool.query(
+      `UPDATE auth.usuarios 
+       SET codigo_verificacion = $1, verificado = false
+       WHERE email = $2`,
+      [codigo, email]
+    );
+
+    // Enviar correo
+    await transporter.sendMail({
+      from: `"Soporte Nubi" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Nuevo código de verificación',
+      html: `<p>Tu nuevo código de verificación es:</p><h1>${codigo}</h1>`,
+    });
+
+    res.json({ message: 'Nuevo código enviado' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno al reenviar código' });
+  }
+});
 
 // --- Ruta de registro con archivo para fotógrafos ---
 router.post('/register/fotografo', upload.single('hoja_vida'), async (req, res) => {
