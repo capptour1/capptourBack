@@ -7,45 +7,51 @@ const SECRET_KEY = 'secret_key';
 const router = express.Router();
 
 
-
-
-
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-    try {
-        const result = await pool.query('SELECT * FROM auth.usuarios WHERE email = $1', [email]);
-        const user = result.rows[0];
+  const { email, password } = req.body;
 
-        
-        if (!user || user.password !== password) {
-            return res.status(401).json({ error: 'Credenciales inválidas' });
-        }
+  try {
+    const result = await pool.query(
+      'SELECT * FROM auth.usuarios WHERE email = $1',
+      [email]
+    );
+    const user = result.rows[0];
 
-        if (user.estado !== 'A') {
-            return res.status(403).json({ error: 'Usuario inactivo' });
-        }
-
-        const token = jwt.sign(
-            { userId: user.id, role: user.rol_id },
-            SECRET_KEY,
-            { expiresIn: '2h' }
-        );
-
-
-        res.status(200).json({
-            message: 'Login exitoso',
-            token,
-            user: {
-                id: user.id,
-                nombre: user.nombre_completo,
-                email: user.email,
-                rol_id: user.rol_id,
-            }
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
+
+    if (user.estado !== 'A') {
+      return res.status(403).json({ error: 'Usuario inactivo' });
+    }
+
+    // 🚨 Verificar si el correo está confirmado
+    if (!user.verificado) {
+      return res.status(403).json({ 
+        error: 'Cuenta no verificada. Por favor revisa tu correo para ingresar el código de verificación.' 
+      });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, role: user.rol_id },
+      process.env.SECRET_KEY || "defaultSecret",
+      { expiresIn: '2h' }
+    );
+
+    res.status(200).json({
+      message: 'Login exitoso',
+      token,
+      user: {
+        id: user.id,
+        nombre: user.nombre_completo,
+        email: user.email,
+        rol_id: user.rol_id,
+      },
+    });
+  } catch (error) {
+    console.error('Error en login:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
 

@@ -99,8 +99,8 @@ router.post('/cercanos', async (req, res) => {
             JOIN auth.usuarios u ON ua.usuario_id = u.id
             JOIN fotografo.fotografos f ON ua.usuario_id = f.usuario_id
             WHERE u.rol_id = 5
-            AND ua.actualizada_en > NOW() - INTERVAL '2 minutes' 
-            AND f.is_active = true
+            --AND ua.actualizada_en > NOW() - INTERVAL '2 minutes' 
+            --AND f.is_active = true
             AND ua.latitude BETWEEN $1 AND $2
             AND ua.longitude BETWEEN $3 AND $4
              ${whereTextCondition}
