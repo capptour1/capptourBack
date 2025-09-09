@@ -1,41 +1,67 @@
+// routes/auth.js
 import express from 'express';
 import pool from '../db.js';
 import multer from 'multer';
-import fs from 'fs/promises';
 import nodemailer from 'nodemailer';
-import crypto from 'crypto';
 
 const router = express.Router();
 
-// Configuración de almacenamiento en memoria
+/* =========================
+   CONFIG: Multer (PDF en memoria)
+========================= */
 const storage = multer.memoryStorage();
-
-// Configuración de correo
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: "gabodelac@gmail.com",
-    pass:"ezfq hdcc wnyg rcol"
-  }
-});
-
-// Configurar multer con validaciones
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
   fileFilter: (req, file, cb) => {
-    console.log('Archivo recibido:', file.originalname);
-    console.log('Tipo de archivo:', file.mimetype);
-
-    const allowedTypes = ['application/pdf'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Formato de archivo no permitido (solo PDF).'));
-    }
-  },
+    const allowed = ['application/pdf'];
+    if (allowed.includes(file.mimetype)) return cb(null, true);
+    cb(new Error('Formato de archivo no permitido (solo PDF).'));
+  }
 });
-// --- Verificar código ---
+
+/* =========================
+   CONFIG: Nodemailer (SMTP)
+   Usa variables de entorno (NO hardcodear claves)
+========================= */
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: Number(process.env.SMTP_PORT || 587),
+  secure: (process.env.SMTP_SECURE || 'false') === 'true', // true para 465
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+// (opcional) verifica conexión SMTP al iniciar
+transporter.verify().then(() => {
+  console.log('[mail] SMTP listo');
+}).catch(err => {
+  console.warn('[mail] SMTP no verificado:', err?.message);
+});
+
+/* Helper para enviar correo */
+async function sendVerificationEmail({ to, codigo, brand = 'Nubi' }) {
+  const from = process.env.EMAIL_FROM || `Soporte ${brand} <${process.env.EMAIL_USER}>`;
+  const info = await transporter.sendMail({
+    from,
+    to,
+    subject: 'Código de verificación',
+    html: `
+      <h2>¡Bienvenido a ${brand}!</h2>
+      <p>Tu código de verificación es:</p>
+      <h1 style="letter-spacing:3px">${codigo}</h1>
+      <p>Si no fuiste tú, ignora este mensaje.</p>
+    `
+  });
+  return info; // info.messageId
+}
+
+/* =========================
+   POST /verify
+   Verifica código y marca usuario como verificado
+========================= */
 router.post('/verify', async (req, res) => {
   const { email, codigo } = req.body;
 
@@ -44,44 +70,42 @@ router.post('/verify', async (req, res) => {
   }
 
   try {
-    // Verificar que el código sea correcto
-    const result = await pool.query(
-      `SELECT id, codigo_verificacion, verificado 
-       FROM auth.usuarios 
+    const { rows } = await pool.query(
+      `SELECT id, codigo_verificacion, verificado
+       FROM auth.usuarios
        WHERE email = $1`,
       [email]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
+    if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-    const usuario = result.rows[0];
+    const u = rows[0];
 
-    if (usuario.verificado) {
-      return res.status(200).json({ message: 'Usuario ya verificado' });
-    }
+    if (u.verificado) return res.status(200).json({ message: 'Usuario ya verificado' });
 
-    if (usuario.codigo_verificacion !== codigo) {
+    if (!u.codigo_verificacion || u.codigo_verificacion !== codigo) {
       return res.status(400).json({ error: 'Código inválido' });
     }
 
-    // ✅ Actualizar como verificado
     await pool.query(
-      `UPDATE auth.usuarios 
+      `UPDATE auth.usuarios
        SET verificado = true, codigo_verificacion = NULL
        WHERE email = $1`,
       [email]
     );
 
-    res.json({ message: 'Usuario verificado correctamente' });
+    return res.json({ message: 'Usuario verificado correctamente' });
   } catch (err) {
     console.error('Error al verificar código:', err);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-// --- Ruta de registro normal (sin archivo) ---
+/* =========================
+   POST /
+   Registro normal (sin archivo) + envío de código
+   NOTA: hashea password en producción (bcrypt)
+========================= */
 router.post('/', async (req, res) => {
   const { nombre, email, password, rol_id, telefono, servicio_id } = req.body;
 
@@ -90,147 +114,116 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Generar código de verificación de 6 dígitos
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
 
     const insertQuery = `
-      INSERT INTO auth.usuarios 
-      (nombre_completo, email, password, rol_id, telefono, servicio_id, creado_en, verificado, codigo_verificacion)
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), false, $7) 
+      INSERT INTO auth.usuarios
+      (nombre_completo, email, password, rol_id, telefono, servicio_id, creado_en, estado, verificado, codigo_verificacion)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'A', false, $7)
       RETURNING *;
     `;
 
     const values = [nombre, email, password, rol_id, telefono, servicio_id ?? null, codigo];
     const result = await pool.query(insertQuery, values);
 
-    // Enviar el correo
-    await transporter.sendMail({
-      from: `"Soporte capp" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Código de verificación',
-      html: `
-        <h2>¡Bienvenido a Capptour!</h2>
-        <p>Tu código de verificación es:</p>
-        <h1>${codigo}</h1>
-        <p>Este código expira en 15 minutos.</p>
-      `
-    });
+    await sendVerificationEmail({ to: email, codigo, brand: 'Capptour' });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: 'Usuario registrado. Código enviado al correo.',
-      usuario: result.rows[0],
+      usuario: result.rows[0]
     });
   } catch (error) {
     console.error('Error al registrar usuario:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
-// --- Reenviar código ---
+
+/* =========================
+   POST /resend-code
+   Reenvía un nuevo código
+========================= */
 router.post('/resend-code', async (req, res) => {
   const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ error: 'Falta el email' });
-  }
+  if (!email) return res.status(400).json({ error: 'Falta el email' });
 
   try {
-    // Generar nuevo código
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Guardar en la DB
-    await pool.query(
-      `UPDATE auth.usuarios 
+    const { rowCount } = await pool.query(
+      `UPDATE auth.usuarios
        SET codigo_verificacion = $1, verificado = false
        WHERE email = $2`,
       [codigo, email]
     );
 
-    // Enviar correo
-    await transporter.sendMail({
-      from: `"Soporte Nubi" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Nuevo código de verificación',
-      html: `<p>Tu nuevo código de verificación es:</p><h1>${codigo}</h1>`,
-    });
+    if (rowCount === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-    res.json({ message: 'Nuevo código enviado' });
+    await sendVerificationEmail({ to: email, codigo, brand: 'Nubi' });
+
+    return res.json({ message: 'Nuevo código enviado' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error interno al reenviar código' });
+    console.error('Error en resend-code:', err);
+    return res.status(500).json({ error: 'Error interno al reenviar código' });
   }
 });
 
-// --- Ruta de registro con archivo para fotógrafos ---
+/* =========================
+   POST /register/fotografo
+   Registro con archivo (PDF) + envío de código
+========================= */
 router.post('/register/fotografo', upload.single('hoja_vida'), async (req, res) => {
   const client = await pool.connect();
 
   try {
     const { nombre, email, password, rol_id, telefono, descripcion, tarifas } = req.body;
+    if (!req.file) return res.status(400).json({ error: 'No se adjuntó hoja de vida (PDF)' });
 
-    if (!req.file) {
-      return res.status(400).json({ error: 'No se adjuntó hoja de vida' });
-    }
-
-    // Iniciar transacción
-    await client.query('BEGIN');
-
-    // Generar código
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 1. Insertar en auth.usuarios
+    await client.query('BEGIN');
+
+    // 1) Usuario
     const userResult = await client.query(
-      `INSERT INTO auth.usuarios 
-       (nombre_completo, email, password, rol_id, telefono, creado_en, verificado, codigo_verificacion)
-       VALUES ($1, $2, $3, $4, $5, NOW(), false, $6) 
+      `INSERT INTO auth.usuarios
+       (nombre_completo, email, password, rol_id, telefono, creado_en, estado, verificado, codigo_verificacion)
+       VALUES ($1, $2, $3, $4, $5, NOW(), 'A', false, $6)
        RETURNING id, email`,
       [nombre, email, password, rol_id, telefono, codigo]
     );
+
     const usuario_id = userResult.rows[0].id;
 
-    // 2. Insertar en fotografo.fotografos
+    // 2) Fotógrafo (guardas nombre del archivo; si usas storage, aquí subirías y guardarías la URL)
     await client.query(
       `INSERT INTO fotografo.fotografos (usuario_id, hoja_vida, descripcion, tarifas)
        VALUES ($1, $2, $3, $4)`,
-      [usuario_id, req.file.originalname, descripcion, tarifas]
+      [usuario_id, req.file.originalname, descripcion || null, tarifas || null]
     );
 
-    // Confirmar transacción
     await client.query('COMMIT');
 
-    // Enviar correo con código
-    await transporter.sendMail({
-      from: `"Soporte Nubi" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Código de verificación',
-      html: `
-        <h2>¡Bienvenido a Nubi!</h2>
-        <p>Tu código de verificación es:</p>
-        <h1>${codigo}</h1>
-        <p>Este código expira en 15 minutos.</p>
-      `
-    });
+    await sendVerificationEmail({ to: email, codigo, brand: 'Nubi' });
 
-    res.status(201).json({ message: 'Fotógrafo registrado. Código enviado al correo' });
-
+    return res.status(201).json({ message: 'Fotógrafo registrado. Código enviado al correo' });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error en registro de fotógrafo:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    return res.status(500).json({ error: 'Error interno del servidor' });
   } finally {
     client.release();
   }
 });
 
-// --- Ruta para obtener información de un usuario ---
+/* =========================
+   POST /info
+   Trae info de usuario + datos de fotógrafo si existen
+========================= */
 router.post('/info', async (req, res) => {
   const { userId } = req.body;
-
-  if (!userId) {
-    return res.status(400).json({ error: 'Falta el ID del usuario' });
-  }
+  if (!userId) return res.status(400).json({ error: 'Falta el ID del usuario' });
 
   try {
-    const result = await pool.query(
+    const { rows } = await pool.query(
       `SELECT u.id, u.nombre_completo, u.email, u.telefono, u.rol_id,
               f.descripcion, f.tarifas, f.hoja_vida
        FROM auth.usuarios u
@@ -239,24 +232,22 @@ router.post('/info', async (req, res) => {
       [userId]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    res.status(200).json(result.rows[0]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+    return res.status(200).json(rows[0]);
   } catch (error) {
     console.error('Error al obtener información del usuario:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-// Middleware de manejo de errores de multer
+/* =========================
+   Manejo de errores de multer
+========================= */
 router.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+  if (err?.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({ error: 'El archivo supera el límite de 10 MB' });
-  } else if (err) {
-    return res.status(400).json({ error: err.message });
   }
+  if (err) return res.status(400).json({ error: err.message });
   next();
 });
 
