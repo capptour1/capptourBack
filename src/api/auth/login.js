@@ -2,10 +2,9 @@ import jwt from 'jsonwebtoken';
 import express from 'express';
 import pool from '../../db.js';
 
-const SECRET_KEY = 'secret_key';
+const SECRET_KEY = 'secret_key'; // ← CLAVE UNIFICADA
 
 const router = express.Router();
-
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -27,16 +26,19 @@ router.post('/login', async (req, res) => {
 
     // 🚨 Verificar si el correo está confirmado
     if (!user.verificado) {
-      return res.status(403).json({ 
-        error: 'Cuenta no verificada. Por favor revisa tu correo para ingresar el código de verificación.' 
+      return res.status(403).json({
+        error: 'Cuenta no verificada. Por favor revisa tu correo para ingresar el código de verificación.'
       });
     }
 
+    // ✅ CLAVE UNIFICADA
     const token = jwt.sign(
       { userId: user.id, role: user.rol_id },
-      process.env.SECRET_KEY || "defaultSecret",
+      SECRET_KEY, // ← MISMA CLAVE QUE EL MIDDLEWARE
       { expiresIn: '2h' }
     );
+
+    console.log('🔑 LOGIN - Token generado con clave unificada');
 
     res.status(200).json({
       message: 'Login exitoso',
@@ -53,6 +55,5 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
-
 
 export default router;
