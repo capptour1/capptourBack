@@ -39,20 +39,21 @@ router.post('/save', async (req, res) => {
 // GET /api/photos/immediate/photographer/:id - Obtener fotógrafo por ID (público)
 router.get('/photographer/:id', async (req, res) => {
     try {
-        const fotografoId = req.params.id;
+        const usuarioId = req.params.id; // ← Ahora es usuario_id
 
-        // ✅ CONSULTA CORREGIDA (usar columnas de la tabla usuarios)
+        // ✅ CONSULTA CORREGIDA - buscar por usuario_id
         const query = `
             SELECT 
-                f.id, 
-                u.nombre_completo AS nombre,  -- ← De la tabla usuarios
-                u.email 
-            FROM fotografo.fotografos f
-            INNER JOIN auth.usuarios u ON f.usuario_id = u.id
-            WHERE f.id = $1
+                u.id,                    -- ← Devolver usuario_id como id
+                u.nombre_completo AS nombre,
+                u.email,
+                f.id as fotografo_id     -- ← Y también el fotografo_id por si acaso
+            FROM auth.usuarios u
+            LEFT JOIN fotografo.fotografos f ON u.id = f.usuario_id
+            WHERE u.id = $1 AND u.rol_id = 5  -- ← Solo fotógrafos
         `;
 
-        const result = await db.query(query, [fotografoId]);
+        const result = await db.query(query, [usuarioId]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Fotógrafo no encontrado' });
@@ -61,10 +62,10 @@ router.get('/photographer/:id', async (req, res) => {
         const fotografo = result.rows[0];
 
         res.status(200).json({
-            id: fotografo.id,
+            id: fotografo.id,           // ← usuario_id (35)
+            fotografo_id: fotografo.fotografo_id, // ← fotografo_id (7)
             nombre: fotografo.nombre,
             email: fotografo.email
-            // ✅ foto_perfil removido porque no existe
         });
     } catch (err) {
         console.error('❌ Error obteniendo fotógrafo:', err.stack);
