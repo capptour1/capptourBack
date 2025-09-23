@@ -3,10 +3,11 @@ import http from 'http';
 import app from './src/app.js';
 import { handleChat } from './chatHandler.js';
 import { initReservas } from './reservasHandler.js';
+import { initFotoInmediata } from './fotoInmediataHandler.js'; // ← Nuevo import
 
 const server = http.createServer(app);
 export const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET','POST'] },
+  cors: { origin: '*', methods: ['GET', 'POST'] },
 });
 
 export const usuariosConectados = new Map();
@@ -14,6 +15,7 @@ export const usuariosConectados = new Map();
 // Inicializar handlers
 handleChat(io, usuariosConectados);
 initReservas(io, usuariosConectados);
+initFotoInmediata(io, usuariosConectados); // ← Nuevo handler
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`🚀 Socket.IO corriendo en puerto ${PORT}`));
