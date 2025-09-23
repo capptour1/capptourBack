@@ -21,38 +21,36 @@ export function initFotoInmediata(io, usuariosConectados) {
         // Solicitud de foto desde usuario
         socket.on('solicitar-foto', async ({ fotografoId, usuarioId, usuarioNombre }) => {
             try {
-                // ✅ VALIDAR QUE LOS DATOS SEAN CORRECTOS
+                // ✅ VALIDAR DATOS
                 if (!fotografoId || fotografoId === 'null' || fotografoId === 'undefined') {
                     console.log('❌ fotografoId inválido:', fotografoId);
-                    socket.emit('error-solicitud', {
-                        message: 'ID de fotógrafo inválido'
-                    });
+                    socket.emit('error-solicitud', { message: 'ID de fotógrafo inválido' });
                     return;
                 }
 
-                if (!usuarioId || usuarioId === 'null' || usuarioId === 'undefined') {
-                    console.log('❌ usuarioId inválido:', usuarioId);
-                    socket.emit('error-solicitud', {
-                        message: 'ID de usuario inválido'
-                    });
-                    return;
-                }
-
-                // ✅ CONVERTIR A NÚMERO
                 const fotografoIdNum = parseInt(fotografoId);
                 const usuarioIdNum = parseInt(usuarioId);
 
-                if (isNaN(fotografoIdNum) || isNaN(usuarioIdNum)) {
-                    console.log('❌ IDs no son números:', { fotografoId, usuarioId });
-                    socket.emit('error-solicitud', {
-                        message: 'IDs deben ser números válidos'
-                    });
+                // ✅ OBTENER EL fotografo_id REAL DE LA BASE DE DATOS
+                const fotografoQuery = `
+            SELECT f.id as fotografo_id 
+            FROM fotografo.fotografos f 
+            WHERE f.usuario_id = $1
+        `;
+                const fotografoResult = await pool.query(fotografoQuery, [fotografoIdNum]);
+
+                if (fotografoResult.rows.length === 0) {
+                    console.log('❌ No se encontró fotógrafo para usuario_id:', fotografoIdNum);
+                    socket.emit('error-solicitud', { message: 'Fotógrafo no encontrado en BD' });
                     return;
                 }
 
-                console.log(`📸 Nueva solicitud de ${usuarioNombre} para fotógrafo ${fotografoIdNum}`);
+                const fotografoRealId = fotografoResult.rows[0].fotografo_id;
+                console.log('🔍 Fotógrafo real ID:', fotografoRealId, 'para usuario_id:', fotografoIdNum);
 
-                // ✅ GUARDAR SOLICITUD EN BD CON NÚMEROS
+                console.log(`📸 Nueva solicitud de ${usuarioNombre} para fotógrafo ${fotografoRealId}`);
+
+                // ✅ USAR EL fotografo_id REAL (7) EN LUGAR DEL usuario_id (35)
                 const query = `
             INSERT INTO fotografo.solicitudes_foto 
             (fotografo_id, usuario_id, estado) 
@@ -60,10 +58,10 @@ export function initFotoInmediata(io, usuariosConectados) {
             RETURNING *
         `;
 
-                const result = await pool.query(query, [fotografoIdNum, usuarioIdNum]);
+                const result = await pool.query(query, [fotografoRealId, usuarioIdNum]);
                 const solicitud = result.rows[0];
 
-                // ✅ NOTIFICAR AL FOTÓGRAFO
+                // ✅ NOTIFICAR AL FOTÓGRAFO USANDO SU usuario_id (35)
                 io.to(`fotografo:${fotografoIdNum}`).emit('nueva-solicitud-foto', {
                     solicitudId: solicitud.id,
                     usuarioId: usuarioIdNum,
@@ -71,7 +69,6 @@ export function initFotoInmediata(io, usuariosConectados) {
                     fecha: new Date().toISOString()
                 });
 
-                // ✅ CONFIRMAR AL USUARIO
                 socket.emit('solicitud-enviada', {
                     solicitudId: solicitud.id,
                     mensaje: 'Solicitud enviada al fotógrafo'
@@ -79,9 +76,7 @@ export function initFotoInmediata(io, usuariosConectados) {
 
             } catch (error) {
                 console.error('Error en solicitar-foto:', error);
-                socket.emit('error-solicitud', {
-                    message: 'Error al enviar solicitud'
-                });
+                socket.emit('error-solicitud', { message: 'Error al enviar solicitud' });
             }
         });
 
