@@ -21,28 +21,57 @@ export function initFotoInmediata(io, usuariosConectados) {
         // Solicitud de foto desde usuario
         socket.on('solicitar-foto', async ({ fotografoId, usuarioId, usuarioNombre }) => {
             try {
-                console.log(`📸 Nueva solicitud de ${usuarioNombre} para fotógrafo ${fotografoId}`);
+                // ✅ VALIDAR QUE LOS DATOS SEAN CORRECTOS
+                if (!fotografoId || fotografoId === 'null' || fotografoId === 'undefined') {
+                    console.log('❌ fotografoId inválido:', fotografoId);
+                    socket.emit('error-solicitud', {
+                        message: 'ID de fotógrafo inválido'
+                    });
+                    return;
+                }
 
-                // Guardar solicitud en BD
+                if (!usuarioId || usuarioId === 'null' || usuarioId === 'undefined') {
+                    console.log('❌ usuarioId inválido:', usuarioId);
+                    socket.emit('error-solicitud', {
+                        message: 'ID de usuario inválido'
+                    });
+                    return;
+                }
+
+                // ✅ CONVERTIR A NÚMERO
+                const fotografoIdNum = parseInt(fotografoId);
+                const usuarioIdNum = parseInt(usuarioId);
+
+                if (isNaN(fotografoIdNum) || isNaN(usuarioIdNum)) {
+                    console.log('❌ IDs no son números:', { fotografoId, usuarioId });
+                    socket.emit('error-solicitud', {
+                        message: 'IDs deben ser números válidos'
+                    });
+                    return;
+                }
+
+                console.log(`📸 Nueva solicitud de ${usuarioNombre} para fotógrafo ${fotografoIdNum}`);
+
+                // ✅ GUARDAR SOLICITUD EN BD CON NÚMEROS
                 const query = `
-                    INSERT INTO fotografo.solicitudes_foto 
-                    (fotografo_id, usuario_id, estado) 
-                    VALUES ($1, $2, 'pendiente') 
-                    RETURNING *
-                `;
+            INSERT INTO fotografo.solicitudes_foto 
+            (fotografo_id, usuario_id, estado) 
+            VALUES ($1, $2, 'pendiente') 
+            RETURNING *
+        `;
 
-                const result = await pool.query(query, [fotografoId, usuarioId]);
+                const result = await pool.query(query, [fotografoIdNum, usuarioIdNum]);
                 const solicitud = result.rows[0];
 
-                // Notificar al fotógrafo
-                io.to(`fotografo:${fotografoId}`).emit('nueva-solicitud-foto', {
+                // ✅ NOTIFICAR AL FOTÓGRAFO
+                io.to(`fotografo:${fotografoIdNum}`).emit('nueva-solicitud-foto', {
                     solicitudId: solicitud.id,
-                    usuarioId: usuarioId,
+                    usuarioId: usuarioIdNum,
                     usuarioNombre: usuarioNombre,
                     fecha: new Date().toISOString()
                 });
 
-                // Confirmar al usuario
+                // ✅ CONFIRMAR AL USUARIO
                 socket.emit('solicitud-enviada', {
                     solicitudId: solicitud.id,
                     mensaje: 'Solicitud enviada al fotógrafo'
