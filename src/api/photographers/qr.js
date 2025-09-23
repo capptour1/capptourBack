@@ -1,30 +1,22 @@
-import express from 'express';
-import db from '../../db.js';
-import QRCode from 'qrcode';
-
-const router = express.Router();
-
-// POST /api/photographers/qr/generate - Solo para fotógrafos (role = 5)
+// POST /api/photographers/qr/generate
 router.post('/generate', async (req, res) => {
     try {
-        // ✅ VERIFICACIÓN DE USUARIO AUTENTICADO
         if (!req.user) {
             return res.status(401).json({ error: 'Usuario no autenticado' });
         }
 
-        // ✅ VERIFICACIÓN DE ROL
         if (req.user.role !== 5) {
             console.log('🚫 Acceso denegado. Rol recibido:', req.user.role);
             return res.status(403).json({ error: 'Acceso denegado. Solo fotógrafos pueden generar QR' });
         }
 
-        const usuarioId = req.user.userId;
+        const usuarioId = req.user.userId; // Este es 35
         console.log('📸 Generando QR para usuario_id:', usuarioId);
 
-        // ✅ CONSULTA CORREGIDA (sin foto_perfil)
         const query = `
             SELECT 
-                f.id, 
+                f.id as fotografo_id, 
+                f.usuario_id,  // ← IMPORTANTE: incluir usuario_id
                 u.nombre_completo AS nombre,
                 u.email 
             FROM fotografo.fotografos f
@@ -42,26 +34,25 @@ router.post('/generate', async (req, res) => {
         const fotografo = result.rows[0];
         console.log('✅ Fotógrafo encontrado:', fotografo);
 
-        // Datos para incluir en el QR
+        // ✅ CORREGIR: Usar usuario_id en lugar de fotografo_id
         const qrData = JSON.stringify({
-            fotografo_id: fotografo.id,
+            usuario_id: fotografo.usuario_id, // ← Cambiar a usuario_id (35)
             action: 'foto_inmediata',
             timestamp: new Date().getTime()
         });
 
-        // Generar QR como Data URL (imagen base64)
         const qrImage = await QRCode.toDataURL(qrData);
 
-        console.log('✅ QR generado exitosamente para fotógrafo ID:', fotografo.id);
+        console.log('✅ QR generado exitosamente para usuario ID:', fotografo.usuario_id);
 
         res.status(200).json({
             success: true,
             qr: qrImage,
             fotografo: {
-                id: fotografo.id,
+                id: fotografo.usuario_id, // ← Devolver usuario_id también
+                fotografo_id: fotografo.fotografo_id, // ← Y el fotografo_id por si acaso
                 nombre: fotografo.nombre,
                 email: fotografo.email
-                // ✅ foto_perfil removido porque no existe en la BD
             }
         });
     } catch (err) {
@@ -72,5 +63,3 @@ router.post('/generate', async (req, res) => {
         });
     }
 });
-
-export default router;
