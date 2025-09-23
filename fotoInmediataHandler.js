@@ -28,68 +28,64 @@ export function initFotoInmediata(io, usuariosConectados) {
                 console.log('📨 Evento solicitar-foto recibido:', { fotografoId, usuarioId, usuarioNombre });
 
                 // ✅ VALIDAR DATOS
-                if (!fotografoId || fotografoId === 'null' || fotografoId === 'undefined') {
-                    console.log('❌ fotografoId inválido:', fotografoId);
-                    socket.emit('error-solicitud', { message: 'ID de fotógrafo inválido' });
+                if (!fotografoId || fotografoId === 'null') {
+                    console.log('❌ fotografoId inválido');
                     return;
                 }
 
                 const fotografoIdNum = parseInt(fotografoId);
                 const usuarioIdNum = parseInt(usuarioId);
 
-                if (isNaN(fotografoIdNum) || isNaN(usuarioIdNum)) {
-                    console.log('❌ IDs no son números válidos:', { fotografoId, usuarioId });
-                    socket.emit('error-solicitud', { message: 'IDs deben ser números válidos' });
-                    return;
-                }
-
-                // ✅ OBTENER EL fotografo_id REAL DE LA BASE DE DATOS
-                console.log(`🔍 Buscando fotografo_id para usuario_id: ${fotografoIdNum}`);
-                const fotografoQuery = `
-                    SELECT f.id as fotografo_id 
-                    FROM fotografo.fotografos f 
-                    WHERE f.usuario_id = $1
-                `;
-                const fotografoResult = await pool.query(fotografoQuery, [fotografoIdNum]);
+                // ✅ OBTENER fotografo_id REAL
+                const fotografoResult = await pool.query(
+                    'SELECT f.id as fotografo_id FROM fotografo.fotografos f WHERE f.usuario_id = $1',
+                    [fotografoIdNum]
+                );
 
                 if (fotografoResult.rows.length === 0) {
-                    console.log('❌ No se encontró fotógrafo para usuario_id:', fotografoIdNum);
-                    socket.emit('error-solicitud', { message: 'Fotógrafo no encontrado en BD' });
+                    console.log('❌ Fotógrafo no encontrado');
                     return;
                 }
 
                 const fotografoRealId = fotografoResult.rows[0].fotografo_id;
-                console.log('🔍 Fotógrafo real ID:', fotografoRealId, 'para usuario_id:', fotografoIdNum);
 
-                console.log(`📸 Nueva solicitud de ${usuarioNombre} para fotógrafo ${fotografoRealId}`);
+                // ✅ INSERTAR SOLICITUD
+                const result = await pool.query(
+                    'INSERT INTO fotografo.solicitudes_foto (fotografo_id, usuario_id, estado) VALUES ($1, $2, $3) RETURNING *',
+                    [fotografoRealId, usuarioIdNum, 'pendiente']
+                );
 
-                // ✅ USAR EL fotografo_id REAL EN LUGAR DEL usuario_id
-                const query = `
-                    INSERT INTO fotografo.solicitudes_foto 
-                    (fotografo_id, usuario_id, estado) 
-                    VALUES ($1, $2, 'pendiente') 
-                    RETURNING *
-                `;
-
-                const result = await pool.query(query, [fotografoRealId, usuarioIdNum]);
                 const solicitud = result.rows[0];
-                console.log('✅ Solicitud guardada en BD con ID:', solicitud.id);
+                console.log('✅ Solicitud guardada ID:', solicitud.id);
 
-                // ✅ DEBUG ANTES DE EMITIR
-                const targetRoom = `fotografo:${fotografoIdNum}`;
-                const roomClients = io.sockets.adapter.rooms.get(targetRoom);
-                console.log(`🔊 Emitiendo a room: ${targetRoom}`);
-                console.log(`👥 Clientes en room:`, roomClients ? Array.from(roomClients) : 'Vacío');
+                // ✅ 🔥 SOLUCIÓN DEFINITIVA: Buscar TODOS los sockets del fotógrafo
+                const fotografoSockets = [];
 
-                // ✅ NOTIFICAR AL FOTÓGRAFO USANDO SU usuario_id
-                io.to(targetRoom).emit('nueva-solicitud-foto', {
-                    solicitudId: solicitud.id,
-                    usuarioId: usuarioIdNum,
-                    usuarioNombre: usuarioNombre,
-                    fecha: new Date().toISOString()
-                });
+                // Buscar en todos los sockets conectados
+                const sockets = await io.fetchSockets();
+                for (const clientSocket of sockets) {
+                    // Si este socket pertenece al fotógrafo
+                    if (clientSocket.rooms.has(`fotografo:${fotografoIdNum}`)) {
+                        fotografoSockets.push(clientSocket.id);
+                    }
+                }
 
-                console.log('📤 Notificación enviada a fotógrafo');
+                console.log(`🔍 Sockets del fotógrafo ${fotografoIdNum}:`, fotografoSockets);
+
+                if (fotografoSockets.length > 0) {
+                    // ✅ ENVIAR A TODOS los sockets del fotógrafo
+                    fotografoSockets.forEach(socketId => {
+                        io.to(socketId).emit('nueva-solicitud-foto', {
+                            solicitudId: solicitud.id,
+                            usuarioId: usuarioIdNum,
+                            usuarioNombre: usuarioNombre,
+                            fecha: new Date().toISOString()
+                        });
+                    });
+                    console.log(`📤 Notificación enviada a ${fotografoSockets.length} socket(s) del fotógrafo`);
+                } else {
+                    console.log('⚠️ Fotógrafo no tiene sockets activos');
+                }
 
                 // ✅ CONFIRMAR AL USUARIO
                 socket.emit('solicitud-enviada', {
@@ -97,13 +93,8 @@ export function initFotoInmediata(io, usuariosConectados) {
                     mensaje: 'Solicitud enviada al fotógrafo'
                 });
 
-                console.log('✅ Flujo de solicitud completado exitosamente');
-
             } catch (error) {
                 console.error('❌ Error en solicitar-foto:', error);
-                socket.emit('error-solicitud', {
-                    message: 'Error al enviar solicitud: ' + error.message
-                });
             }
         });
 
