@@ -15,6 +15,7 @@ import pagosRoutes from '../api/photographers/pagos.js';
 import immediateUploadRouter from '../api/photos/immediate/upload.js';
 import immediateRouter from '../api/photos/immediate/immediate.js';
 import qrRoutes from '../api/photographers/qr.js';
+import usuarioRoutes from '../api/usuario/usuario.js';
 
 const router = express.Router();
 
@@ -31,6 +32,7 @@ router.use('/sesion_fotos', sesionFotosRoutes);
 router.use('/chat', chatRoutes);
 router.use('/admin', adminRoutes);
 router.use('/pagos', pagosRoutes);
+router.use('/usuario', usuarioRoutes);
 
 // ✅ RUTAS CORREGIDAS (sin duplicados)
 router.use('/photos/immediate/upload', immediateUploadRouter);
