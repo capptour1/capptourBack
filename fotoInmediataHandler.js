@@ -149,10 +149,111 @@ export function initFotoInmediata(io, usuariosConectados) {
             }
         });
 
-        // ... (mantener el resto del código igual que tenías)
+        // Fotógrafo rechaza solicitud
+        socket.on('rechazar-solicitud', async ({ solicitudId }) => {
+            try {
+                console.log(`❌ Rechazando solicitud: ${solicitudId}`);
 
-        socket.on('disconnect', () => {
-            console.log('🔴 Cliente desconectado (foto inmediata):', socket.id);
+                await pool.query(
+                    'UPDATE fotografo.solicitudes_foto SET estado = $1 WHERE id = $2',
+                    ['rechazada', solicitudId]
+                );
+
+                const solicitudData = await pool.query(
+                    'SELECT usuario_id FROM fotografo.solicitudes_foto WHERE id = $1',
+                    [solicitudId]
+                );
+
+                if (solicitudData.rows.length > 0) {
+                    io.to(`usuario:${solicitudData.rows[0].usuario_id}`).emit('solicitud-rechazada', {
+                        solicitudId: solicitudId,
+                        mensaje: 'El fotógrafo ha rechazado tu solicitud'
+                    });
+                    console.log('✅ Solicitud rechazada y usuario notificado');
+                } else {
+                    console.log('❌ No se encontró la solicitud para rechazar');
+                }
+
+            } catch (error) {
+                console.error('❌ Error rechazando solicitud:', error);
+            }
+        });
+
+        // Foto tomada por fotógrafo
+        socket.on('foto-tomada', async ({ solicitudId, fotoUrl }) => {
+            try {
+                console.log(`📷 Foto tomada para solicitud: ${solicitudId}`);
+
+                const solicitudData = await pool.query(`
+                    SELECT s.*, u.nombre_completo as usuario_nombre 
+                    FROM fotografo.solicitudes_foto s 
+                    JOIN auth.usuarios u ON s.usuario_id = u.id 
+                    WHERE s.id = $1
+                `, [solicitudId]);
+
+                if (solicitudData.rows.length === 0) {
+                    console.log('❌ Solicitud no encontrada para foto');
+                    return;
+                }
+
+                const solicitud = solicitudData.rows[0];
+
+                // Guardar foto en BD
+                const fotoResult = await pool.query(
+                    `INSERT INTO fotografo.fotos_inmediatas 
+                     (fotografo_id, usuario_id, foto_url) 
+                     VALUES ($1, $2, $3) RETURNING *`,
+                    [solicitud.fotografo_id, solicitud.usuario_id, fotoUrl]
+                );
+
+                // Marcar solicitud como completada
+                await pool.query(
+                    'UPDATE fotografo.solicitudes_foto SET estado = $1 WHERE id = $2',
+                    ['completada', solicitudId]
+                );
+
+                // Notificar a AMBOS usuarios
+                io.to(`usuario:${solicitud.usuario_id}`).emit('foto-guardada', {
+                    solicitudId: solicitudId,
+                    fotoUrl: fotoUrl,
+                    mensaje: '¡Tu foto ha sido guardada exitosamente!'
+                });
+
+                socket.emit('foto-procesada', {
+                    solicitudId: solicitudId,
+                    usuarioNombre: solicitud.usuario_nombre,
+                    fotoUrl: fotoUrl,
+                    mensaje: 'Foto guardada exitosamente'
+                });
+
+                console.log('✅ Foto guardada y notificaciones enviadas');
+
+            } catch (error) {
+                console.error('❌ Error guardando foto:', error);
+                socket.emit('error-foto', {
+                    message: 'Error al guardar la foto'
+                });
+            }
+        });
+
+        // Manejar errores de socket
+        socket.on('error', (error) => {
+            console.error('❌ Error de socket:', error);
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('🔴 Cliente desconectado (foto inmediata):', socket.id, 'Razón:', reason);
+        });
+
+        // Evento de ping para verificar conexión
+        socket.on('ping', () => {
+            socket.emit('pong', { timestamp: new Date().toISOString() });
         });
     });
+
+    // Log periódico de rooms activos
+    setInterval(() => {
+        const rooms = io.sockets.adapter.rooms;
+        console.log('🏠 Rooms activos:', Array.from(rooms.keys()));
+    }, 30000); // Cada 30 segundos
 }
