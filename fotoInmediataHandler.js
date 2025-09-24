@@ -27,6 +27,16 @@ export function initFotoInmediata(io, usuariosConectados) {
         socket.on('solicitar-foto', async ({ fotografoId, usuarioId, usuarioNombre }) => {
             try {
                 console.log('📨 Evento solicitar-foto recibido:', { fotografoId, usuarioId, usuarioNombre });
+                console.log('🎯🎯🎯 SOLICITUD-FOTO EVENTO DISPARADO 🎯🎯🎯');
+                console.log('📨 Datos recibidos:', { fotografoId, usuarioId, usuarioNombre });
+                console.log('🔍 Tipo de fotografoId:', typeof fotografoId);
+                console.log('🔍 Valor de fotografoId:', fotografoId);
+
+                // ✅ VALIDACIÓN EXTRA STRICT
+                if (!fotografoId || fotografoId === 'null' || fotografoId === 'undefined') {
+                    console.log('❌❌❌ fotografoId INVÁLIDO:', fotografoId);
+                    return;
+                }
 
                 // ✅ CORRECCIÓN: fotografoId ES EL usuario_id DEL FOTÓGRAFO
                 const fotografoUsuarioId = parseInt(fotografoId);
