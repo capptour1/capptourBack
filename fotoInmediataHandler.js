@@ -75,11 +75,22 @@ export function initFotoInmediata(io, usuariosConectados) {
                 if (fotografoSockets.length > 0) {
                     // ✅ ENVIAR A TODOS los sockets del fotógrafo
                     fotografoSockets.forEach(socketId => {
-                        io.to(socketId).emit('nueva-solicitud-foto', {
-                            solicitudId: solicitud.id,
-                            usuarioId: usuarioIdNum,
-                            usuarioNombre: usuarioNombre,
-                            fecha: new Date().toISOString()
+                        // ✅ ENVIAR A MÚLTIPLES EVENTOS
+                        const eventos = [
+                            'nueva_solicitud_foto',      // guion bajo
+                            'nueva-solicitud-foto',      // guion medio (original)
+                            'nuevasolicitudfoto',        // sin guiones
+                            'new_photo_request'          // inglés
+                        ];
+
+                        eventos.forEach(evento => {
+                            io.to(socketId).emit(evento, {
+                                solicitudId: solicitud.id,
+                                usuarioId: usuarioIdNum,
+                                usuarioNombre: usuarioNombre,
+                                fecha: new Date().toISOString()
+                            });
+                            console.log(`📤 Enviado a evento: ${evento}`);
                         });
                     });
                     console.log(`📤 Notificación enviada a ${fotografoSockets.length} socket(s) del fotógrafo`);
