@@ -75,7 +75,12 @@ export function initFotoInmediata(io, usuariosConectados) {
                 };
 
                 if (socketsEnRoom.length > 0) {
-                    io.to(`fotografo:${fotografoUsuarioId}`).emit('nueva-solicitud-foto', datosSolicitud);
+                    io.to(`fotografo:${fotografoUsuarioId}`).emit('solicitud', {
+                        id: solicitud.id,
+                        usuario: usuarioNombre,
+                        userId: usuarioIdNum,
+                        fecha: new Date().toISOString()
+                    });
                     console.log(`📤 ENVIADO AL ROOM: fotografo:${fotografoUsuarioId}`);
                 } else {
                     // CAPA 2: BUSCAR SOCKETS DEL FOTÓGRAFO
