@@ -22,34 +22,30 @@ export function initFotoInmediata(io, usuariosConectados) {
             console.log(`👤 Usuario ${usuarioId} unido al room usuario:${usuarioId}`);
         });
 
-        // Solicitud de foto desde usuario
+
+        // fotoInmediataHandler.js - CORREGIDO
         socket.on('solicitar-foto', async ({ fotografoId, usuarioId, usuarioNombre }) => {
             try {
                 console.log('📨 Evento solicitar-foto recibido:', { fotografoId, usuarioId, usuarioNombre });
 
-                // ✅ VALIDAR DATOS
-                if (!fotografoId || fotografoId === 'null') {
-                    console.log('❌ fotografoId inválido');
-                    return;
-                }
-
-                const fotografoIdNum = parseInt(fotografoId);
+                // ✅ CORRECCIÓN: fotografoId ES EL usuario_id DEL FOTÓGRAFO
+                const fotografoUsuarioId = parseInt(fotografoId);
                 const usuarioIdNum = parseInt(usuarioId);
 
-                // ✅ OBTENER fotografo_id REAL
+                // ✅ OBTENER EL FOTÓGRAFO_ID REAL usando el usuario_id
                 const fotografoResult = await pool.query(
-                    'SELECT f.id as fotografo_id FROM fotografo.fotografos f WHERE f.usuario_id = $1',
-                    [fotografoIdNum]
+                    'SELECT id as fotografo_id FROM fotografo.fotografos WHERE usuario_id = $1',
+                    [fotografoUsuarioId]  // ← Ahora sí, usamos el usuario_id correctamente
                 );
 
                 if (fotografoResult.rows.length === 0) {
-                    console.log('❌ Fotógrafo no encontrado');
+                    console.log('❌ Fotógrafo no encontrado para usuario_id:', fotografoUsuarioId);
                     return;
                 }
 
                 const fotografoRealId = fotografoResult.rows[0].fotografo_id;
 
-                // ✅ INSERTAR SOLICITUD
+                // ✅ INSERTAR SOLICITUD CON EL FOTÓGRAFO_ID CORRECTO
                 const result = await pool.query(
                     'INSERT INTO fotografo.solicitudes_foto (fotografo_id, usuario_id, estado) VALUES ($1, $2, $3) RETURNING *',
                     [fotografoRealId, usuarioIdNum, 'pendiente']
@@ -58,45 +54,15 @@ export function initFotoInmediata(io, usuariosConectados) {
                 const solicitud = result.rows[0];
                 console.log('✅ Solicitud guardada ID:', solicitud.id);
 
-                // ✅ 🔥 SOLUCIÓN DEFINITIVA: Buscar TODOS los sockets del fotógrafo
-                const fotografoSockets = [];
+                // ✅ ENVIAR NOTIFICACIÓN AL FOTÓGRAFO usando su usuario_id
+                io.to(`fotografo:${fotografoUsuarioId}`).emit('nueva-solicitud-foto', {
+                    solicitudId: solicitud.id,
+                    usuarioId: usuarioIdNum,
+                    usuarioNombre: usuarioNombre,
+                    fecha: new Date().toISOString()
+                });
 
-                // Buscar en todos los sockets conectados
-                const sockets = await io.fetchSockets();
-                for (const clientSocket of sockets) {
-                    // Si este socket pertenece al fotógrafo
-                    if (clientSocket.rooms.has(`fotografo:${fotografoIdNum}`)) {
-                        fotografoSockets.push(clientSocket.id);
-                    }
-                }
-
-                console.log(`🔍 Sockets del fotógrafo ${fotografoIdNum}:`, fotografoSockets);
-
-                if (fotografoSockets.length > 0) {
-                    // ✅ ENVIAR A TODOS los sockets del fotógrafo
-                    fotografoSockets.forEach(socketId => {
-                        // ✅ ENVIAR A MÚLTIPLES EVENTOS
-                        const eventos = [
-                            'nueva_solicitud_foto',      // guion bajo
-                            'nueva-solicitud-foto',      // guion medio (original)
-                            'nuevasolicitudfoto',        // sin guiones
-                            'new_photo_request'          // inglés
-                        ];
-
-                        eventos.forEach(evento => {
-                            io.to(socketId).emit(evento, {
-                                solicitudId: solicitud.id,
-                                usuarioId: usuarioIdNum,
-                                usuarioNombre: usuarioNombre,
-                                fecha: new Date().toISOString()
-                            });
-                            console.log(`📤 Enviado a evento: ${evento}`);
-                        });
-                    });
-                    console.log(`📤 Notificación enviada a ${fotografoSockets.length} socket(s) del fotógrafo`);
-                } else {
-                    console.log('⚠️ Fotógrafo no tiene sockets activos');
-                }
+                console.log(`📤 Notificación enviada a room: fotografo:${fotografoUsuarioId}`);
 
                 // ✅ CONFIRMAR AL USUARIO
                 socket.emit('solicitud-enviada', {
@@ -108,7 +74,6 @@ export function initFotoInmediata(io, usuariosConectados) {
                 console.error('❌ Error en solicitar-foto:', error);
             }
         });
-
         // Fotógrafo acepta solicitud
         socket.on('aceptar-solicitud', async ({ solicitudId }) => {
             try {
