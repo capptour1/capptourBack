@@ -1,24 +1,17 @@
-import mongoose from 'mongoose';
+// index to sequelize models
+import fs from 'fs';
+import path from 'path';
+import { Sequelize } from 'sequelize';
+import { fileURLToPath } from 'url';
+import config from '../config/config.js';
 
-const itemSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    description: {
-        type: String,
-        required: true
-    },
-    price: {
-        type: Number,
-        required: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const sequelize = new Sequelize(config.database, config.username, config.password, {
+  host: config.host,
+  dialect: 'postgres',
+  logging: false,
 });
 
-const Item = mongoose.model('Item', itemSchema);
-
-export { Item };
+export { sequelize };
