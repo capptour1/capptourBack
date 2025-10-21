@@ -1,41 +1,17 @@
-import sequelize from '../config/database.js';
-import SesionFotoInmediata from './SesionFotoInmediata.js';
-import FotoSesionInmediata from './FotoSesionInmediata.js';
-import Usuario from './Usuario.js';
+// index to sequelize models
+import fs from 'fs';
+import path from 'path';
+import { Sequelize } from 'sequelize';
+import { fileURLToPath } from 'url';
+import config from '../config/config.js';
 
-// Definir asociaciones
-SesionFotoInmediata.belongsTo(Usuario, { 
-  foreignKey: 'cliente_id', 
-  as: 'cliente' 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const sequelize = new Sequelize(config.database, config.username, config.password, {
+  host: config.host,
+  dialect: 'postgres',
+  logging: false,
 });
 
-SesionFotoInmediata.belongsTo(Usuario, { 
-  foreignKey: 'colaborador_id', 
-  as: 'colaborador' 
-});
-
-FotoSesionInmediata.belongsTo(SesionFotoInmediata, { 
-  foreignKey: 'sesion_token',
-  targetKey: 'token',
-  as: 'sesion' 
-});
-
-SesionFotoInmediata.hasMany(FotoSesionInmediata, { 
-  foreignKey: 'sesion_token',
-  sourceKey: 'token',
-  as: 'fotos' 
-});
-
-export {
-  sequelize,
-  SesionFotoInmediata,
-  FotoSesionInmediata,
-  Usuario
-};
-
-export default {
-  sequelize,
-  SesionFotoInmediata,
-  FotoSesionInmediata,
-  Usuario
-};
+export { sequelize };
