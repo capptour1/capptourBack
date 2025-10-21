@@ -51,14 +51,15 @@ if (!fs.existsSync(comprobantesDir)) {
   console.log('📁 Carpeta "uploads/comprobantes" creada.');
 }
 
-// Conexión a la base de datos con Sequelize
-sequelize.authenticate()
-  .then(() => {
-    console.log('✅ Conexión a la base de datos exitosa con Sequelize');
-  })
-  .catch(err => {
-    console.error('❌ Error al conectar a la base de datos', err);
-  });
+// // Conexión a la base de datos
+// pool.connect()
+//   .then(client => {
+//     console.log('✅ Conexión a la base de datos exitosa');
+//     client.release();
+//   })
+//   .catch(err => {
+//     console.error('❌ Error al conectar a la base de datos', err);
+//   });
 
 // 👉 Servir archivos estáticos (incluyendo comprobantes)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

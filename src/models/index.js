@@ -1,4 +1,3 @@
-// index to sequelize models
 import fs from 'fs';
 import path from 'path';
 import { Sequelize } from 'sequelize';
@@ -12,6 +11,12 @@ const sequelize = new Sequelize(config.database, config.username, config.passwor
   host: config.host,
   dialect: 'postgres',
   logging: false,
+  dialectOptions: {
+    ssl: {
+      require: true,         
+      rejectUnauthorized: false,
+    },
+  },
 });
 
-export { sequelize };
+export default sequelize;
