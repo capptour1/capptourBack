@@ -39,7 +39,7 @@ router.post('/generar-qr', authenticateToken, async (req, res) => {
     try {
         const { cliente_id, duracion_minutos = 5 } = req.body;
         const userId = req.user.userId;
-        
+
         console.log('Usuario autenticado:', req.user);
         console.log('Cliente ID solicitado:', cliente_id);
 
@@ -345,6 +345,106 @@ router.post('/foto-inmediata/subir-foto', authenticateToken, upload.single('foto
     }
 });
 
+// Obtener estado de sesión temporal
+router.get('/foto-inmediata/estado-sesion', authenticateToken, async (req, res) => {
+    try {
+        const { token } = req.query;
+        const userId = req.user.id || req.user.userId;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                mensaje: 'Token de sesión requerido'
+            });
+        }
+
+        // Buscar sesión
+        const sesion = await SesionFotoInmediata.findOne({
+            where: {
+                token: token
+            },
+            include: [
+                {
+                    model: Usuario,
+                    as: 'cliente',
+                    attributes: ['id', 'nombre']
+                },
+                {
+                    model: Usuario,
+                    as: 'colaborador',
+                    attributes: ['id', 'nombre'],
+                    required: false
+                }
+            ]
+        });
+
+        if (!sesion) {
+            return res.json({
+                success: false,
+                mensaje: 'Sesión no encontrada'
+            });
+        }
+
+        // Verificar autorización (cliente o colaborador)
+        const esCliente = sesion.cliente_id === userId;
+        const esColaborador = sesion.colaborador_id === userId;
+
+        if (!esCliente && !esColaborador) {
+            return res.status(403).json({
+                success: false,
+                mensaje: 'No autorizado para ver esta sesión'
+            });
+        }
+
+        // Calcular tiempo restante
+        const ahora = new Date();
+        const expira = new Date(sesion.expires_at);
+        const tiempoRestanteMs = expira.getTime() - ahora.getTime();
+        const tiempoRestanteMinutos = Math.max(0, Math.ceil(tiempoRestanteMs / (1000 * 60)));
+
+        // Determinar estado
+        let estadoActual = sesion.estado;
+        if (ahora > expira && estadoActual === 'activa') {
+            estadoActual = 'expirada';
+            // Actualizar en BD
+            await sesion.update({ estado: 'expirada' });
+        }
+
+        // Contar fotos de la sesión
+        const totalFotos = await FotoSesionInmediata.count({
+            where: {
+                sesion_token: token
+            }
+        });
+
+        res.json({
+            success: true,
+            sesion: {
+                token: sesion.token,
+                estado: estadoActual,
+                cliente_id: sesion.cliente_id,
+                cliente_nombre: sesion.cliente?.nombre || 'Cliente',
+                colaborador_asignado: !!sesion.colaborador_id,
+                colaborador_id: sesion.colaborador_id,
+                colaborador_nombre: sesion.colaborador?.nombre || null,
+                fotos_subidas: totalFotos,
+                tiempo_restante_minutos: tiempoRestanteMinutos,
+                fecha_creacion: sesion.created_at || null,
+                fecha_inicio: sesion.fecha_inicio,
+                fecha_expiracion: sesion.expires_at
+            },
+            mensaje: 'Estado obtenido correctamente'
+        });
+
+    } catch (error) {
+        console.error('Error obteniendo estado de sesión:', error);
+        res.status(500).json({
+            success: false,
+            mensaje: 'Error interno del servidor'
+        });
+    }
+});
+
 // Finalizar sesión
 router.post('/foto-inmediata/finalizar-sesion', authenticateToken, async (req, res) => {
     try {
@@ -368,7 +468,7 @@ router.post('/foto-inmediata/finalizar-sesion', authenticateToken, async (req, r
         }
 
         // Calcular duración
-        const duracionMinutos = sesion.fecha_inicio 
+        const duracionMinutos = sesion.fecha_inicio
             ? Math.round((new Date() - new Date(sesion.fecha_inicio)) / (1000 * 60))
             : 0;
 

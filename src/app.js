@@ -4,7 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import routes from './routes/index.js';
 import { sequelize } from './models/index.js';
-import jwt from 'jsonwebtoken'; // ✅ Añadir esta importación
+import jwt from 'jsonwebtoken'; 
 
 const app = express();
 

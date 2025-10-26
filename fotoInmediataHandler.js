@@ -260,4 +260,4 @@ export function initFotoInmediata(io, usuariosConectados) {
         );
         console.log('🏠 Rooms activos (foto):', fotoRooms);
     }, 20000);
-}
+} 
