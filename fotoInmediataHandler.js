@@ -252,7 +252,7 @@ export function initFotoInmediata(io, usuariosConectados) {
         });
     });
 
-    // Debug de rooms cada 20 segundos
+    //Debug de rooms cada 20 segundos
     setInterval(() => {
         const rooms = io.sockets.adapter.rooms;
         const fotoRooms = Array.from(rooms.keys()).filter(room =>

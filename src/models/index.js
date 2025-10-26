@@ -1,24 +1,41 @@
-import mongoose from 'mongoose';
+import sequelize from '../config/database.js';
+import SesionFotoInmediata from './SesionFotoInmediata.js';
+import FotoSesionInmediata from './FotoSesionInmediata.js';
+import Usuario from './Usuario.js';
 
-const itemSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    description: {
-        type: String,
-        required: true
-    },
-    price: {
-        type: Number,
-        required: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
+// Definir asociaciones
+SesionFotoInmediata.belongsTo(Usuario, { 
+  foreignKey: 'cliente_id', 
+  as: 'cliente' 
 });
 
-const Item = mongoose.model('Item', itemSchema);
+SesionFotoInmediata.belongsTo(Usuario, { 
+  foreignKey: 'colaborador_id', 
+  as: 'colaborador' 
+});
 
-export { Item };
+FotoSesionInmediata.belongsTo(SesionFotoInmediata, { 
+  foreignKey: 'sesion_token',
+  targetKey: 'token',
+  as: 'sesion' 
+});
+
+SesionFotoInmediata.hasMany(FotoSesionInmediata, { 
+  foreignKey: 'sesion_token',
+  sourceKey: 'token',
+  as: 'fotos' 
+});
+
+export {
+  sequelize,
+  SesionFotoInmediata,
+  FotoSesionInmediata,
+  Usuario
+};
+
+export default {
+  sequelize,
+  SesionFotoInmediata,
+  FotoSesionInmediata,
+  Usuario
+};

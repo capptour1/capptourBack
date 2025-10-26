@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import routes from './routes/index.js';
-import pool from './db.js';
+import { sequelize } from './models/index.js';
 import jwt from 'jsonwebtoken'; // ✅ Añadir esta importación
 
 const app = express();
@@ -47,11 +47,10 @@ if (!fs.existsSync(comprobantesDir)) {
   console.log('📁 Carpeta "uploads/comprobantes" creada.');
 }
 
-// Conexión a la base de datos
-pool.connect()
-  .then(client => {
-    console.log('✅ Conexión a la base de datos exitosa');
-    client.release();
+// Conexión a la base de datos con Sequelize
+sequelize.authenticate()
+  .then(() => {
+    console.log('✅ Conexión a la base de datos exitosa con Sequelize');
   })
   .catch(err => {
     console.error('❌ Error al conectar a la base de datos', err);
