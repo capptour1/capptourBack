@@ -14,19 +14,22 @@ import { QueryTypes } from 'sequelize';
 
 
 */
+const start_transaction = () => {
+  return sequelize.transaction({autocommit: false});
+}
 
-
-const register_client = async (name, email, password) => {
+const register_client = async (name, phone, email, password, transaction) => {
   try {
     console.log('Register client controller called');
 
     const result = await sequelize.query(
-      `INSERT INTO auth.usuarios (nombre_completo, email, password)
-       VALUES (:name, :email, :password)
+      `INSERT INTO auth.usuarios (nombre_completo, telefono, email, password, rol_id)
+       VALUES (:name, :phone, :email, :password, 3)
        RETURNING *;`,
       {
-        replacements: { name, email, password },
+        replacements: { name, phone, email, password },
         type: QueryTypes.INSERT,
+        transaction
       }
     );
 
@@ -37,7 +40,24 @@ const register_client = async (name, email, password) => {
   }
 };
 
+const check_email_exists = async (email) => {
+  try {
+    const result = await sequelize.query(
+      `SELECT * FROM auth.usuarios WHERE trim(lower(email)) = trim(lower(:email));`,
+      {
+        replacements: { email },
+        type: QueryTypes.SELECT,
+      }
+    );
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error checking email existence:', error);
+    throw new Error('Error checking email existence');
+  }
+};
 
 export default {
+  start_transaction,
   register_client,
+  check_email_exists,
 };
