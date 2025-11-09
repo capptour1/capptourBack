@@ -18,25 +18,25 @@ const start_transaction = () => {
   return sequelize.transaction({autocommit: false});
 }
 
-const register_client = async (name, phone, email, password, transaction) => {
+const register_client = async (name, email, password, transaction) => {
   try {
     console.log('Register client controller called');
 
     const result = await sequelize.query(
-      `INSERT INTO auth.usuarios (nombre_completo, telefono, email, password, rol_id)
-       VALUES (:name, :phone, :email, :password, 3)
+      `INSERT INTO auth.usuarios (nombre_completo, email, password, rol_id)
+       VALUES (:name, :email, :password, 3)
        RETURNING *;`,
       {
-        replacements: { name, phone, email, password },
+        replacements: { name, email, password },
         type: QueryTypes.INSERT,
         transaction
       }
     );
 
-    return result;
+    return result[0][0];
   } catch (error) {
     console.error('Error registering client:', error);
-    throw new Error('Error registering client');
+    throw new Error('Error al registrar el cliente');
   }
 };
 
@@ -52,7 +52,33 @@ const check_email_exists = async (email) => {
     return result.length > 0;
   } catch (error) {
     console.error('Error checking email existence:', error);
-    throw new Error('Error checking email existence');
+    throw new Error('Error al verificar la existencia del email');
+  }
+};
+
+const find_user_by_email = async (email) => {
+  try {
+    const result = await sequelize.query(
+      `SELECT * FROM auth.usuarios WHERE trim(lower(email)) = trim(lower(:email));`,
+      {
+        replacements: { email },
+        type: QueryTypes.SELECT,
+      }
+    );
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error('Error finding user by email:', error);
+    throw new Error('Error al buscar el usuario por email');
+  }
+};
+
+const verify_password = async (password, hashedPassword) => {
+  try {
+    //return await bcrypt.compare(password, hashedPassword);
+    return password === hashedPassword;
+  } catch (error) {
+    console.error('Error verifying password:', error);
+    throw new Error('Error al verificar la contraseña');
   }
 };
 
@@ -60,4 +86,8 @@ export default {
   start_transaction,
   register_client,
   check_email_exists,
+  find_user_by_email,
+  verify_password,
 };
+
+
