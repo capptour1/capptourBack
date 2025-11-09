@@ -13,20 +13,28 @@ const successResponse = (res, data, message = 'Success', appCode = 0) => {
 
 // Respuesta de error
 const errorResponse = (res, error) => {
-  if (error instanceof AppError) {
-    console.error('[APP_ERROR]', error);
-    return res.status(error.statusCode).json({
-      status: error.status,
-      message: error.message
+  try {
+    if (error instanceof AppError) {
+      console.error('[APP_ERROR]', error);
+      return res.status(error.statusCode).json({
+        status: error.status,
+        message: error.message
+      });
+    }
+
+    // Error inesperado
+    console.error('[UNHANDLED_ERROR]', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Internal Server Error'
+    });
+  } catch (err) {
+    console.error('[UNHANDLED_ERROR]', err);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Internal Server Error'
     });
   }
-
-  // Error inesperado
-  console.error('[UNHANDLED_ERROR]', error);
-  return res.status(500).json({
-    status: 'error',
-    message: 'Internal Server Error'
-  });
 };
 
 export default {
