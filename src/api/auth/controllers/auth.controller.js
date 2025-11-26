@@ -160,6 +160,7 @@ const register_photographer = async (req, res) => {
   }
 };
 
+
 export default {
   login,
   register_client,

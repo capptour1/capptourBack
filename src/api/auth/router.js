@@ -17,4 +17,6 @@ router.post(
     AuthController.register_photographer
 );
 
+
+
 export default router;

@@ -4,7 +4,7 @@ import usersRoutes from '../api/users.js';
 //import authRoutes from '../api/auth/login.js';
 import authRoutes from '../api/auth/router.js';
 import photosRoutes from '../api/photos.js';
-import photographerRoutes from '../api/auth/photographer.js';
+import photographerRoutes from '../api/photographers/router.js';
 import ubicacionRoutes from '../api/auth/ubicacion.js';
 import bookingsRoutes from '../api/bookings.js';
 import reservasRoutes from '../api/reservas.js';
@@ -40,5 +40,9 @@ router.use('/photos/immediate/upload', immediateUploadRouter);
 router.use('/photos/immediate', immediateRouter); // ← Quitar el "/immediate" duplicado
 
 router.use('/photographers/qr', qrRoutes);
+
+
+
+//
 
 export default router;
