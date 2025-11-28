@@ -367,17 +367,17 @@ router.get('/foto-inmediata/estado-sesion', authenticateToken, async (req, res) 
                 {
                     model: Usuario,
                     as: 'cliente',
-                    attributes: ['id', 'nombre']
+                    attributes: ['id', 'nombre_completo']
                 },
                 {
                     model: Usuario,
                     as: 'colaborador',
-                    attributes: ['id', 'nombre'],
+                    attributes: ['id', 'nombre_completo'],
                     required: false
                 }
             ]
         });
-
+       console.log(sesion)
         if (!sesion) {
             return res.json({
                 success: false,

@@ -31,7 +31,7 @@ router.post('/save', async (req, res) => {
 
         res.status(200).json(result.rows[0]);
     } catch (err) {
-        console.error('❌ Error guardando foto inmediata:', err.stack);
+        console.error('Error guardando foto inmediata:', err.stack);
         res.status(500).json({ message: 'Error interno del servidor.' });
     }
 });
@@ -41,7 +41,7 @@ router.get('/photographer/:id', async (req, res) => {
     try {
         const usuarioId = req.params.id; // ← Ahora es usuario_id
 
-        // ✅ CONSULTA CORREGIDA - buscar por usuario_id
+        //  CONSULTA CORREGIDA - buscar por usuario_id
         const query = `
             SELECT 
                 u.id,                    -- ← Devolver usuario_id como id
@@ -68,7 +68,7 @@ router.get('/photographer/:id', async (req, res) => {
             email: fotografo.email
         });
     } catch (err) {
-        console.error('❌ Error obteniendo fotógrafo:', err.stack);
+        console.error(' Error obteniendo fotógrafo:', err.stack);
         res.status(500).json({ message: 'Error interno del servidor.' });
     }
 });

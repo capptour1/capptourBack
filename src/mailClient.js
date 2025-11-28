@@ -1,7 +1,7 @@
 // mailClient.js
 import fetch from 'node-fetch';
 
-const MAIL_SERVICE_URL = process.env.MAIL_SERVICE_URL; // ej: https://tu-mail-service.onrender.com
+const MAIL_SERVICE_URL = process.env.MAIL_SERVICE_URL; 
 const MAIL_SERVICE_API_KEY = process.env.MAIL_SERVICE_API_KEY;
 
 if (!MAIL_SERVICE_URL || !MAIL_SERVICE_API_KEY) {
