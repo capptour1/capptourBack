@@ -10,7 +10,8 @@ const upload = multer({
 });
 
 router.post('/profile', photographerController.getPhotographerById);
-
+router.post('/updateBio', photographerController.updateBio);
+router.post('/updateProfile', photographerController.updateProfile);
 
 
 export default router;

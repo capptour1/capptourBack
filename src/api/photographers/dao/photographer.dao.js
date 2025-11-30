@@ -39,10 +39,32 @@ const get_photographer_by_id = async (userId) => {
     }
 };
 
+const update_bio = async (userId, bio, transaction) => {
+    try {
+        console.log('Update bio DAO called', userId, bio);
+        const result = await sequelize.query(
+            `UPDATE fotografo.fotografos
+            SET descripcion = :bio
+            WHERE usuario_id = cast(:userId AS int)
+            `,
+            {  
+                replacements: { userId, bio },
+                type: QueryTypes.UPDATE,
+                transaction
+            }
+        );
+        return result;
+    } catch (error) {
+        console.error('Error updating bio:', error);
+        throw new Error('Error al actualizar la biografía del fotógrafo');
+    }
+};
+
 
 export default {
     start_transaction,
-    get_photographer_by_id
+    get_photographer_by_id,
+    update_bio
 };
 
 
