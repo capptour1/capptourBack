@@ -13,5 +13,8 @@ router.post('/profile', photographerController.getPhotographerById);
 router.post('/updateBio', photographerController.updateBio);
 router.post('/updateProfile', photographerController.updateProfile);
 
+router.post('/toggleStatus', photographerController.toggleStatus);
+router.post('/getStatus', photographerController.getStatus);
+
 
 export default router;

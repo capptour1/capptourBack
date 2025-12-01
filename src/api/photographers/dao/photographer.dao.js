@@ -5,6 +5,26 @@ const start_transaction = () => {
     return sequelize.transaction({ autocommit: false });
 }
 
+const get_photographer_by_user = async (userId) => {
+    const photographer = await sequelize.query(
+        `SELECT *
+        FROM fotografo.fotografos
+        WHERE usuario_id = cast(:userId AS int)
+        `,
+        {
+            replacements: { userId },
+            type: QueryTypes.SELECT,
+        }
+    );
+
+    if (!photographer || photographer.length === 0) {
+        throw new Error('Fotógrafo no encontrado');
+    }
+    return photographer[0];
+}
+
+
+
 const get_photographer_by_id = async (userId) => {
     try {
         console.log('Get photographer by ID DAO called', userId);
@@ -41,14 +61,17 @@ const get_photographer_by_id = async (userId) => {
 
 const update_bio = async (userId, bio, transaction) => {
     try {
+
+        const photographer = await get_photographer_by_user(userId);
+
         console.log('Update bio DAO called', userId, bio);
         const result = await sequelize.query(
-            `UPDATE fotografo.fotografos
+            `UPDATE fotografo.foto_portafolio
             SET descripcion = :bio
-            WHERE usuario_id = cast(:userId AS int)
+            WHERE id_fotografo = cast(:photographerId AS int)
             `,
-            {  
-                replacements: { userId, bio },
+            {
+                replacements: { photographerId: photographer.id, bio },
                 type: QueryTypes.UPDATE,
                 transaction
             }
@@ -60,11 +83,81 @@ const update_bio = async (userId, bio, transaction) => {
     }
 };
 
+const update_telephone = async (userId, telephone, transaction) => {
+    await sequelize.query(
+        `DELETE FROM auth.contacto
+        WHERE id_usuario = cast(:userId AS int) AND tipo = 2
+        `,
+        {
+            replacements: { userId },
+            type: QueryTypes.DELETE,
+            transaction
+        }
+    );
+
+    const result = await sequelize.query(
+        `INSERT INTO auth.contacto
+        (id_usuario, detalle, tipo)
+        VALUES (cast(:userId AS int), :telephone, 2)
+        `,
+        {
+            replacements: { userId, telephone },
+            type: QueryTypes.INSERT,
+            transaction
+        }
+    );
+    return result;
+};
+
+const update_info = async (userId, data, transaction) => {
+    const photographer = await get_photographer_by_user(userId);
+
+    const result = await sequelize.query(
+        ` UPDATE fotografo.foto_portafolio
+        SET ubicacion = :location, precio_hora_cop = :priceHourCop,
+        precio_hora_usd = :priceHourUsd, precio_foto_cop = :pricePhotoCop,
+        precio_foto_usd = :pricePhotoUsd
+        WHERE id_fotografo = cast(:userId AS int)
+        `,
+        {
+            replacements: { userId: photographer[0].id, location: JSON.stringify(data.location), priceHourCop: data.priceHourCop, priceHourUsd: data.priceHourUsd, pricePhotoCop: data.pricePhotoCop, pricePhotoUsd: data.pricePhotoUsd },
+            type: QueryTypes.UPDATE,
+            transaction,
+            returning: true
+        }
+    ); 
+    return result;
+}
+
+const toggle_status = async (userId, transaction) => {
+    const photographer = await get_photographer_by_user(userId);
+
+    const result = await sequelize.query(
+        `UPDATE fotografo.foto_portafolio
+        SET is_active = NOT is_active
+        WHERE id_fotografo = cast(:photographerId AS int)
+        `,
+        {
+            replacements: { photographerId: photographer.id },
+            type: QueryTypes.UPDATE,
+            transaction,
+            returning: true
+        }
+    );
+    return result;
+};
+
+const get_status = async (userId) => {
+    const photographer = await get_photographer_by_user(userId);
+    return photographer;
+};
 
 export default {
     start_transaction,
     get_photographer_by_id,
-    update_bio
+    update_bio,
+    update_telephone,
+    update_info
 };
 
 
