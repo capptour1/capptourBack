@@ -34,18 +34,55 @@ const update_bio = async (req, res) => {
 };
 
 const update_profile = async (req, res) => {
+  let t = null;
   try {
-    // separar userId del resto de datos
     const { userId, ...data } = req.body;
-    console.log('Update profile controller called', userId, data);
+    t = await PhotographerDAO.start_transaction();
+    console.log('Update profile controller called', req.body);
+    await PhotographerDAO.update_telephone(userId, data.telephone, t);
+    await PhotographerDAO.update_info(userId, data, t);
+    await t.commit();
     return successResponse(res, null, 'Perfil actualizado correctamente');
   } catch (error) {
+    if (t) {
+      await t.rollback();
+    }
     return errorResponse(res, error);
   }
 }
 
+const toggle_status = async (req, res) => {
+  const transaction = await PhotographerDAO.start_transaction();
+  try {
+    const { userId } = req.body;
+    console.log('Toggle status controller called', req.body);
+    await PhotographerDAO.toggle_status(userId, transaction);
+    await transaction.commit();
+    return successResponse(res, null, 'Estado actualizado correctamente');
+  } catch (error) {
+    await transaction.rollback();
+    return errorResponse(res, error);
+  }
+};
+
+const get_status = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    console.log('Get status controller called', req.body);
+    const photographer = await PhotographerDAO.get_status(userId);
+    if (!photographer) {
+      throw new AppError('Fotógrafo no encontrado', 404);
+    }
+    return successResponse(res, { isActive: photographer.is_active }, 'Estado obtenido correctamente');
+  } catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
 export default {
   getPhotographerById: get_photographer_by_id,
   updateBio: update_bio,
-  updateProfile: update_profile
+  updateProfile: update_profile,
+  toggleStatus: toggle_status,
+  getStatus: get_status
 };
