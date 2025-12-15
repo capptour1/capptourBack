@@ -3,8 +3,6 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import routes from './routes/index.js';
-import { sequelize } from './models/index.js';
-import jwt from 'jsonwebtoken'; 
 
 const app = express();
 
@@ -16,25 +14,6 @@ const __dirname = path.dirname(__filename);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// // ✅ MIDDLEWARE DE AUTENTICACIÓN JWT (FALTABA ESTO)
-// app.use((req, res, next) => {
-//   const authHeader = req.headers['authorization'];
-//   console.log('Auth Header:', authHeader);
-//   const token = authHeader && authHeader.split(' ')[1];
-
-//   if (token) {
-//     jwt.verify(token, 'secret_key', (err, user) => {
-//       if (!err) {
-//         req.user = user; // ✅ Inyectar usuario en la request
-//       }
-//       next();
-//     });
-//   } else {
-//     next();
-//   }
-// });
-
-// initilize conection sequelize
 
 
 // 📂 Crear carpeta uploads/comprobantes si no existe
@@ -50,16 +29,6 @@ if (!fs.existsSync(comprobantesDir)) {
   fs.mkdirSync(comprobantesDir);
   console.log('📁 Carpeta "uploads/comprobantes" creada.');
 }
-
-// // Conexión a la base de datos
-// pool.connect()
-//   .then(client => {
-//     console.log('✅ Conexión a la base de datos exitosa');
-//     client.release();
-//   })
-//   .catch(err => {
-//     console.error('❌ Error al conectar a la base de datos', err);
-//   });
 
 // 👉 Servir archivos estáticos (incluyendo comprobantes)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -81,6 +50,4 @@ app.use((err, req, res, next) => {
 
 
 
-
-// ❌ Ya no escuchamos aquí. El `socketServer.js` lo hará.
 export default app;
