@@ -29,6 +29,8 @@ const getNearbyPhotographers = async (lat, lng, role, priceMin) => {
 
         const query = `
         SELECT u.nombre_completo as name, fp.ubicacion as location, 5 as rating,
+        fp.descripcion as description, fp.precio_hora_cop as price_cop, fp.precio_hora_usd as price_usd,
+        fp.thumbnail,
           power((fp.ubicacion->>'latitude')::double precision - :lat, 2) +
           power((fp.ubicacion->>'longitude')::double precision - :lng, 2)
           AS distance_rank
