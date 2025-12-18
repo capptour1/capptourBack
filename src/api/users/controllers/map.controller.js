@@ -25,6 +25,7 @@ const getNearbyPhotographers = async (req, res) => {
         );
 
         console.log('Photographers found:', photographers);
+        
         return successResponse(
             res,
             photographers
@@ -47,8 +48,9 @@ const get_gallery_photographer = async (req, res) => {
             throw new AppError('photographerId es requerido', 400);
         }
         const gallery = await mapDao.getGalleryPhotographer(photographerId);
+        console.log('Gallery found:', gallery);
 
-        return successResponse(res, { services, gallery });
+        return successResponse(res , gallery);
     } catch (error) {
         return errorResponse(res, error);
     }
@@ -61,8 +63,9 @@ const get_services_photographer = async (req, res) => {
             throw new AppError('photographerId es requerido', 400);
         }
         const services = await mapDao.getServicesPhotographer(photographerId);
+        console.log('Services found:', services);
 
-        return successResponse(res, { services });
+        return successResponse(res, services);
     }
     catch (error) {
         return errorResponse(res, error);

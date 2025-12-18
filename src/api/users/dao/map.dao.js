@@ -28,7 +28,7 @@ const getNearbyPhotographers = async (lat, lng, role, priceMin) => {
         };
 
         const query = `
-        SELECT u.nombre_completo as name, fp.ubicacion as location, 5 as rating,
+        SELECT f.id, u.nombre_completo as name, fp.ubicacion as location, 5 as rating, 12 as jobs_count,
         fp.descripcion as description, fp.precio_hora_cop as price_cop, fp.precio_hora_usd as price_usd,
         fp.thumbnail,
           power((fp.ubicacion->>'latitude')::double precision - :lat, 2) +
@@ -77,36 +77,37 @@ const getNearbyPhotographers = async (lat, lng, role, priceMin) => {
 
 const getServicesPhotographer = async (photographerId) => {
     const query = `
-        SELECT fs.nombre, fs.descripcion, fs.precio_hora_cop, fs.precio_hora_usd,
-        fs.precio_foto_cop, fs.precio_foto_usd
-        FROM fotografo.foto_servicios fs
+        SELECT fs.id_servicio as id, fs.nombre as name, fs.descripcion as description, fs.precio_hora_cop as price_hour_cop, fs.precio_hora_usd as price_hour_usd,
+        fs.precio_foto_cop as price_photo_cop, fs.precio_foto_usd as price_photo_usd
+        FROM fotografo.foto_servicio fs
         WHERE fs.id_fotografo = :photographerId;
     `;
     const result = await sequelize.query
-    (query, {   
-        replacements: {
-            photographerId  
-        },
-        type: QueryTypes.SELECT
-    });
+        (query, {
+            replacements: {
+                photographerId
+            },
+            type: QueryTypes.SELECT
+        });
     return result;
 }
 
 const getGalleryPhotographer = async (photographerId) => {
     const query = `
-        SELECT gp.thumbnail
+        SELECT gp.id_foto as id,
+         gp.thumbnail
         FROM fotografo.foto_galeria gp
         WHERE gp.id_fotografo = :photographerId;
     `;
     const result = await sequelize.query
-    (query, {   
-        replacements: {
-            photographerId
-        },
-        type: QueryTypes.SELECT
-    });
+        (query, {
+            replacements: {
+                photographerId
+            },
+            type: QueryTypes.SELECT
+        });
 
-    return result.map(item => item.thumbnail);
+    return result;
 }
 
 export default {
