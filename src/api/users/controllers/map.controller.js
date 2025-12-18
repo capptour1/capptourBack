@@ -38,6 +38,40 @@ const getNearbyPhotographers = async (req, res) => {
     }
 };
 
+
+
+const get_gallery_photographer = async (req, res) => {
+    try {
+        const { photographerId } = req.body;
+        if (!photographerId) {
+            throw new AppError('photographerId es requerido', 400);
+        }
+        const gallery = await mapDao.getGalleryPhotographer(photographerId);
+
+        return successResponse(res, { services, gallery });
+    } catch (error) {
+        return errorResponse(res, error);
+    }
+};
+
+const get_services_photographer = async (req, res) => {
+    try {
+        const { photographerId } = req.body;
+        if (!photographerId) {
+            throw new AppError('photographerId es requerido', 400);
+        }
+        const services = await mapDao.getServicesPhotographer(photographerId);
+
+        return successResponse(res, { services });
+    }
+    catch (error) {
+        return errorResponse(res, error);
+    }
+};
+
+
 export default {
     getNearbyPhotographers,
+    get_services_photographer,
+    get_gallery_photographer
 };

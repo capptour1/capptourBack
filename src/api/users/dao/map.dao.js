@@ -75,6 +75,42 @@ const getNearbyPhotographers = async (lat, lng, role, priceMin) => {
     return photographers;
 };
 
+const getServicesPhotographer = async (photographerId) => {
+    const query = `
+        SELECT fs.nombre, fs.descripcion, fs.precio_hora_cop, fs.precio_hora_usd,
+        fs.precio_foto_cop, fs.precio_foto_usd
+        FROM fotografo.foto_servicios fs
+        WHERE fs.id_fotografo = :photographerId;
+    `;
+    const result = await sequelize.query
+    (query, {   
+        replacements: {
+            photographerId  
+        },
+        type: QueryTypes.SELECT
+    });
+    return result;
+}
+
+const getGalleryPhotographer = async (photographerId) => {
+    const query = `
+        SELECT gp.thumbnail
+        FROM fotografo.foto_galeria gp
+        WHERE gp.id_fotografo = :photographerId;
+    `;
+    const result = await sequelize.query
+    (query, {   
+        replacements: {
+            photographerId
+        },
+        type: QueryTypes.SELECT
+    });
+
+    return result.map(item => item.thumbnail);
+}
+
 export default {
     getNearbyPhotographers,
+    getServicesPhotographer,
+    getGalleryPhotographer
 };
