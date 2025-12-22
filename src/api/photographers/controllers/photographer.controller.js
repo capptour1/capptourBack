@@ -56,9 +56,21 @@ const toggle_status = async (req, res) => {
   try {
     const { userId } = req.body;
     console.log('Toggle status controller called', req.body);
-    await PhotographerDAO.toggle_status(userId, transaction);
+
+    // obtener el id del fotógrafo a partir del id del usuario
+    const photographer = await PhotographerDAO.get_photographer_by_user(userId);
+    console.log('Photographer retrieved', photographer);
+    if (!photographer) {
+      throw new AppError('Fotógrafo no encontrado', 404);
+    }
+
+    const newStatus = !photographer.is_active;
+    console.log('New status to set', newStatus);
+
+    let new_status = await PhotographerDAO.set_status(photographer.id, transaction);
+
     await transaction.commit();
-    return successResponse(res, null, 'Estado actualizado correctamente');
+    return successResponse(res, { isActive: new_status }, 'Estado actualizado correctamente');
   } catch (error) {
     await transaction.rollback();
     return errorResponse(res, error);

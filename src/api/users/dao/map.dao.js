@@ -38,11 +38,12 @@ const getNearbyPhotographers = async (lat, lng, role, priceMin) => {
         INNER JOIN auth.usuarios u ON f.usuario_id = u.id
         INNER JOIN fotografo.foto_portafolio fp ON f.id = fp.id_fotografo
         INNER JOIN fotografo.foto_experiencia fe ON f.id = fe.id_fotografo
-        --WHERE (fp.ubicacion->>'latitude')::double precision BETWEEN :minLat AND :maxLat
-         -- AND (fp.ubicacion->>'longitude')::double precision BETWEEN :minLng AND :maxLng
-         -- AND fp.precio_hora_cop >= :priceMin
-         -- AND fp.precio_hora_usd >= :priceMin
-         -- AND fe.id_tipo_exp = :role
+        WHERE (fp.ubicacion->>'latitude')::double precision BETWEEN :minLat AND :maxLat
+         AND (fp.ubicacion->>'longitude')::double precision BETWEEN :minLng AND :maxLng
+         AND f.is_active = true
+         --AND fp.precio_hora_cop >= :priceMin
+         --AND fp.precio_hora_usd >= :priceMin
+         --AND fe.id_tipo_exp = :role
         ORDER BY distance_rank;
       `;
 
@@ -71,7 +72,7 @@ const getNearbyPhotographers = async (lat, lng, role, priceMin) => {
             ? delta * 2
             : delta / 2;
     }
-
+    console.log(`Photographers found: ${photographers.length} within delta: ${delta}`);
     return photographers;
 };
 

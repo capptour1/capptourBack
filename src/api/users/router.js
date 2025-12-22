@@ -12,4 +12,7 @@ router.post('/gallery-photographer', mapController.get_gallery_photographer);
 router.post('/services-photographer', mapController.get_services_photographer);
 router.post('/submit-booking', bookingController.submit_booking);
 
+router.post('/get-bookings', bookingController.getBookings);
+router.post('/cancel-booking', bookingController.cancelBooking);
+
 export default router;

@@ -1,5 +1,6 @@
 import sequelize from '../../../models/index.js';
 import { QueryTypes } from 'sequelize';
+import AppError from '../../../utils/appError.js';
 
 const start_transaction = () => {
     return sequelize.transaction({ autocommit: false });
@@ -18,7 +19,7 @@ const get_photographer_by_user = async (userId) => {
     );
 
     if (!photographer || photographer.length === 0) {
-        throw new Error('Fotógrafo no encontrado');
+        throw new AppError('Fotógrafo no encontrado');
     }
     return photographer[0];
 }
@@ -30,7 +31,7 @@ const get_photographer_by_id = async (userId) => {
         console.log('Get photographer by ID DAO called', userId);
 
         const result = await sequelize.query(
-            `SELECT u.id AS userId, u.nombre_completo, u.email as correo ,TRUE AS estado, fp.ubicacion, 
+            `SELECT u.id AS userId, u.nombre_completo, u.email as correo , f.is_active AS estado, fp.ubicacion, 
             fp.descripcion, fp.precio_hora_cop, fp.precio_hora_usd, fp.precio_foto_cop, fp.precio_foto_usd,
             contacto.detalle as telefono, fp.thumbnail
             FROM auth.usuarios u 
@@ -125,39 +126,51 @@ const update_info = async (userId, data, transaction) => {
             transaction,
             returning: true
         }
-    ); 
+    );
     return result;
 }
 
-const toggle_status = async (userId, transaction) => {
-    const photographer = await get_photographer_by_user(userId);
+const set_status = async (photographerId, transaction) => {
 
     const result = await sequelize.query(
-        `UPDATE fotografo.foto_portafolio
-        SET is_active = NOT is_active
-        WHERE id_fotografo = cast(:photographerId AS int)
+        `UPDATE fotografo.fotografos f
+            SET is_active = NOT is_active
+            WHERE id = cast(:photographerId AS int)
         `,
         {
-            replacements: { photographerId: photographer.id },
+            replacements: { photographerId },
             type: QueryTypes.UPDATE,
             transaction,
             returning: true
         }
     );
-    return result;
+
+    // Retornar el nuevo estado
+    const newStatus = await sequelize.query(
+        `SELECT is_active
+        FROM fotografo.fotografos
+        WHERE id = cast(:photographerId AS int)
+        `,
+        {
+            replacements: { photographerId },
+            type: QueryTypes.SELECT,
+            transaction
+        }
+    );
+
+    return newStatus[0].is_active;
 };
 
-const get_status = async (userId) => {
-    const photographer = await get_photographer_by_user(userId);
-    return photographer;
-};
+
 
 export default {
     start_transaction,
     get_photographer_by_id,
     update_bio,
     update_telephone,
-    update_info
+    update_info,
+    get_photographer_by_user,
+    set_status
 };
 
 
