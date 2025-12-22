@@ -80,10 +80,15 @@ const formatDate = (dateStr) => {
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
     ];
 
-    return `${months[date.getMonth()]} ${date.getDate()}/${date.getFullYear()}`;
+    return `${months[date.getUTCMonth()]} ${date.getUTCDate()}/${date.getUTCFullYear()}`;
 };
 
-const formatTime = (timeStr) => timeStr.slice(0, 5);
+
+const formatTime = (timeStr) => {
+    const [h, m] = timeStr.split(':');
+    return `${h}:${m}`;
+};
+
 
 export default {
     submit_booking,

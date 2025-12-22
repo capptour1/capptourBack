@@ -17,5 +17,10 @@ router.post('/get-bookings', bookingController.getBookings);
 router.post('/cancel-booking', bookingController.cancelBooking);
 
 router.post('/explorer-images', explorerController.get_images);
+router.post('/explorer-history', explorerController.get_history);
+router.post('/explorer-history-photos', explorerController.get_history_photos);
+
+router.post('/get-info-booking', explorerController.get_info_booking);
+router.post('/rate-booking', explorerController.rate_booking);
 
 export default router;
