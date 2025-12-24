@@ -6,6 +6,24 @@ import sharp from 'sharp';
 
 const { successResponse, errorResponse } = HelperResponse;
 
+
+const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+
+    const months = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    return `${months[date.getUTCMonth()]} ${date.getUTCDate()}/${date.getUTCFullYear()}`;
+};
+
+
+const formatTime = (timeStr) => {
+    const [h, m] = timeStr.split(':');
+    return `${h}:${m}`;
+};
+
 const getBookings = async (req, res) => {
     try {
         console.log('Get bookings controller called', req.body);
@@ -88,27 +106,57 @@ const submitDelivery = async (req, res) => {
     }
 };
 
-const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
 
-    const months = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
+const get_history = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        console.log('Get history controller called', req.body);
 
-    return `${months[date.getUTCMonth()]} ${date.getUTCDate()}/${date.getUTCFullYear()}`;
+        const photographer = await PhotographerDAO.get_photographer_by_user(userId);
+        console.log('Photographer retrieved', photographer);
+
+        let history = await pBookingDAO.get_history_photo(photographer.id);
+
+        for (let element of history) {
+            const images = await pBookingDAO.get_bookings_images_photo(element.booking_id);
+            element.photos = images;
+            element.real_date = element.date;
+            element.date = formatDate(element.date);
+            element.start_time = formatTime(element.start_time);
+            element.end_time = formatTime(element.end_time);
+
+            // get calification
+            const ratingData = await pBookingDAO.get_rating_photo(element.booking_id);
+            if (ratingData.length > 0) {
+                // promediar
+                const rating = ratingData[0];
+                const averageRating = (
+                    (rating.puntualidad +
+                        rating.calidad +
+                        rating.profesionalismo +
+                        rating.relacion +
+                        rating.recomendacion) / 5
+                ).toFixed(1);
+                element.rating = parseFloat(averageRating);
+            } else {
+                element.rating = null;
+            }
+        }
+
+
+        return successResponse(res, history);
+    } catch (error) {
+        console.error('Error en get_history controller:', error);
+        return errorResponse(res, error);
+    }
 };
 
-
-const formatTime = (timeStr) => {
-    const [h, m] = timeStr.split(':');
-    return `${h}:${m}`;
-};
 
 
 
 export default {
     getBookings,
     approveBooking,
-    submitDelivery
+    submitDelivery,
+    get_history
 };

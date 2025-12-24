@@ -161,6 +161,102 @@ const set_status = async (photographerId, transaction) => {
     return newStatus[0].is_active;
 };
 
+const get_images_portfolio = async (photographerId) => {
+    const images = await sequelize.query(
+        `SELECT id_foto AS image_id, thumbnail
+        FROM fotografo.foto_galeria
+        WHERE id_fotografo = cast(:photographerId AS int)
+        `,
+        {
+            replacements: { photographerId },
+            type: QueryTypes.SELECT
+        }
+    );
+    return images;
+};
+
+const delete_image = async (imageId) => {
+    await sequelize.query(
+        `DELETE FROM fotografo.foto_galeria
+        WHERE id_foto = cast(:imageId AS int)
+        `,
+        {
+            replacements: { imageId },
+            type: QueryTypes.DELETE
+        }
+    );
+}
+
+const upload_image_portfolio = async (dataGallery) => {
+    await sequelize.query(
+        `INSERT INTO fotografo.foto_galeria
+        (id_fotografo, imagen, thumbnail)
+        VALUES (cast(:id_fotografo AS int), :imagen, :thumbnail)
+        `,
+        {
+            replacements: {
+                id_fotografo: dataGallery.id_fotografo,
+                imagen: dataGallery.imagen,
+                thumbnail: dataGallery.thumbnail
+            },
+            type: QueryTypes.INSERT
+        }
+    );
+};
+
+
+
+// SERVICES MANAGEMENT
+
+const getServices = async (photographerId) => {
+    const services = await sequelize.query(
+        `SELECT fs.id_servicio, fs.nombre AS nombre_servicio, fs.descripcion, fs.precio_hora_cop, fs.precio_hora_usd,
+        fs.precio_foto_cop, fs.precio_foto_usd, fs.fotos_editadas, fs.fotos_sin_editar
+        FROM fotografo.foto_servicio fs
+        WHERE id_fotografo = cast(:photographerId AS int)
+        `,
+        {
+            replacements: { photographerId },
+            type: QueryTypes.SELECT
+        }
+    );
+    return services;
+};
+
+const addService = async (photographerId, data) => {
+    await sequelize.query(
+        `INSERT INTO fotografo.foto_servicio
+        (id_fotografo, nombre, descripcion, precio_hora_cop, precio_hora_usd, precio_foto_cop, precio_foto_usd, fotos_editadas, fotos_sin_editar)
+        VALUES (cast(:photographerId AS int), :serviceName, :description, :priceHourCop, :priceHourUsd, :pricePhotoCop, :pricePhotoUsd, :photosEdited, :photosUnedited)
+        `,
+        {
+            replacements: { 
+                photographerId: photographerId, 
+                serviceName: data.nombre, 
+                description: data.descripcion, 
+                priceHourCop: data.precio_hora_cop,
+                priceHourUsd: data.precio_hora_usd,
+                pricePhotoCop: data.precio_foto_cop,
+                pricePhotoUsd: data.precio_foto_usd,
+                photosEdited: data.fotos_editadas,
+                photosUnedited: data.fotos_sin_editar
+            },
+            type: QueryTypes.INSERT
+        }
+    );
+};
+
+const deleteService = async (serviceId) => {
+    await sequelize.query(
+        `DELETE FROM fotografo.foto_servicio
+        WHERE id_servicio = cast(:serviceId AS int)
+        `,
+        {
+            replacements: { serviceId },
+            type: QueryTypes.DELETE
+        }
+    );
+};
 
 
 export default {
@@ -170,7 +266,13 @@ export default {
     update_telephone,
     update_info,
     get_photographer_by_user,
-    set_status
+    set_status,
+    get_images_portfolio,
+    delete_image,
+    upload_image_portfolio,
+    getServices,
+    addService,
+    deleteService
 };
 
 

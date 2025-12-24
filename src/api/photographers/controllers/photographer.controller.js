@@ -2,6 +2,7 @@
 import PhotographerDAO from '../dao/photographer.dao.js';
 import AppError from '../../../utils/appError.js';
 import HelperResponse from '../../../utils/helperResponse.js';
+import sharp from 'sharp';
 
 const { successResponse, errorResponse } = HelperResponse;
 
@@ -91,10 +92,117 @@ const get_status = async (req, res) => {
   }
 };
 
+const getImagesPortfolio = async (req, res) => {
+  try {
+    console.log('Get images portfolio controller called', req.body);
+    const { user_id } = req.body;
+
+    const photographer = await PhotographerDAO.get_photographer_by_user(user_id);
+
+    const images = await PhotographerDAO.get_images_portfolio(photographer.id);
+    return successResponse(res, images, 'Imágenes de portafolio obtenidas correctamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+const deleteImage = async (req, res) => {
+  try {
+    console.log('Delete image controller called', req.body);
+    const { image_id } = req.body;
+
+    await PhotographerDAO.delete_image(image_id);
+    return successResponse(res, { message: 'Imagen eliminada correctamente' }, 'Imagen eliminada correctamente');
+  } catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+
+const uploadImagePortfolio = async (req, res) => {
+  try {
+    const { user_id } = JSON.parse(req.body.data);
+    const files = req.files;
+    console.log('Files received', files);
+
+    if (!files || files.length === 0) {
+      throw new AppError('No se han proporcionado imágenes para subir', 400);
+    }
+    const photographer = await PhotographerDAO.get_photographer_by_user(user_id);
+    let dataGallery = {};
+
+
+    let file = files[0];
+    const thumbnailBuffer = await sharp(file.buffer)
+      .resize(300, 300, { fit: 'cover' })
+      .jpeg({ quality: 70 })
+      .toBuffer();
+    dataGallery = {
+      id_fotografo: photographer.id,
+      imagen: file.buffer,
+      thumbnail: thumbnailBuffer
+    };
+
+    await PhotographerDAO.upload_image_portfolio(dataGallery);
+
+
+    return successResponse(res, { message: 'Imágenes subidas correctamente' }, 'Imágenes subidas correctamente');
+  } catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+
+const getServices = async (req, res) => {
+  try {
+    console.log('Get services controller called', req.body);
+    const { user_id } = req.body;
+    const photographer = await PhotographerDAO.get_photographer_by_user(user_id);
+    const services = await PhotographerDAO.getServices(photographer.id);
+    return successResponse(res, services, 'Servicios obtenidos correctamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+const addService = async (req, res) => {
+  try {
+    console.log('Add service controller called', req.body);
+    const { user_id, service } = req.body;
+    const photographer = await PhotographerDAO.get_photographer_by_user(user_id);
+
+    await PhotographerDAO.addService(photographer.id, service);
+    return successResponse(res, { message: 'Servicio agregado correctamente' }, 'Servicio agregado correctamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+const deleteService = async (req, res) => {
+  try {
+    console.log('Delete service controller called', req.body);
+    const { service_id } = req.body;
+    await PhotographerDAO.deleteService(service_id);
+    return successResponse(res, { message: 'Servicio eliminado correctamente' }, 'Servicio eliminado correctamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
 export default {
   getPhotographerById: get_photographer_by_id,
   updateBio: update_bio,
   updateProfile: update_profile,
   toggleStatus: toggle_status,
-  getStatus: get_status
+  getStatus: get_status,
+  getImagesPortfolio: getImagesPortfolio,
+  deleteImage: deleteImage,
+  uploadImagePortfolio: uploadImagePortfolio,
+  getServices: getServices,
+  addService: addService,
+  deleteService: deleteService
 };
