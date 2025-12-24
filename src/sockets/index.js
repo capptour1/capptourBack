@@ -21,15 +21,11 @@ export default function initSockets(server) {
   /*
     io.use((socket, next) => {
       try {
-        const token = socket.handshake.auth?.token;
-  
-        if (!token) {
-          return next(new Error('Token requerido'));
-        }
-  
-        const user = verifyJwt(token);
-  
-        socket.user = user;
+          const token = socket.handshake.auth.token;
+
+          const payload = verifyJwt(token);
+          socket.user = payload.user; // 👈 aquí
+          next();
         next();
       } catch (err) {
         next(new Error('Token inválido'));

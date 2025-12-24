@@ -3,14 +3,13 @@ import chatDao from './dao/chat.dao.js';
 const createMessage = async ({ conversationId, senderId, content }) => {
   // 1️⃣ validar conversación
   const conversation = await chatDao.getConversationById(conversationId);
-
   if (!conversation) {
     throw new Error('Conversación no existe');
   }
 
   if (
-    senderId !== conversation.id_cliente &&
-    senderId !== conversation.id_fotografo
+    senderId !== Number(conversation.id_cliente) &&
+    senderId !== Number(conversation.id_fotografo)
   ) {
     throw new Error('No autorizado');
   }

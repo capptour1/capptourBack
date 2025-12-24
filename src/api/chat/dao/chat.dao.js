@@ -3,7 +3,7 @@ import { QueryTypes } from 'sequelize';
 import AppError from '../../../utils/appError.js';
 
 const geTransaction = async () => {
-    return await sequelize.transaction({ autocommit: false });
+  return await sequelize.transaction({ autocommit: false });
 }
 
 const getMessagesByConversation = async (conversationId) => {
@@ -32,20 +32,20 @@ const getConversationById = async (conversationId) => {
   const conversation = await sequelize.query(
     `
     SELECT
-      c.id_conversacion,
+      c.id_chat AS id_conversacion,
       c.tipo,
       c.id_cliente,
       u.nombre_completo AS nombre_cliente,
       c.id_fotografo,
       u2.nombre_completo AS nombre_fotografo,
-      c.id_sesion,
+      c.id_reserva,
       c.fec_creacion,
       c.fec_update
     FROM chat.conversacion c
     JOIN auth.usuarios u ON c.id_cliente = u.id
     JOIN fotografo.fotografos f ON c.id_fotografo = f.id
-    JOIN auth.usuarios u2 ON f.id_usuario = u2.id
-    WHERE c.id_conversacion = CAST(:conversationId AS INT)
+    JOIN auth.usuarios u2 ON f.usuario_id = u2.id
+    WHERE c.id_chat = CAST(:conversationId AS INT)
     `,
     {
       replacements: { conversationId },
@@ -151,15 +151,16 @@ const findSessionConversation = async (sessionId, transaction) => {
 };
 
 
-const createSessionConversation = async ({
+const createSessionConversation = async (
   sessionId,
   clientId,
   photographerId,
-  transaction 
-}) => {
+  transaction
+) => {
+  console.log('Creating session conversation with:', { sessionId, clientId, photographerId });
   const [conversacion] = await sequelize.query(
     `
-    INSERT INTO conversacion (
+    INSERT INTO chat.conversacion (
       tipo,
       id_cliente,
       id_fotografo,
@@ -208,13 +209,13 @@ const getInfoConversationById = async (conversationId, transaction) => {
 
 
 export default {
-    geTransaction,
-    getMessagesByConversation,
-    getConversationById,
-    insertMessage,
-    findDirectConversation,
-    createDirectConversation,
-    findSessionConversation,
-    createSessionConversation,
-    getInfoConversationById
+  geTransaction,
+  getMessagesByConversation,
+  getConversationById,
+  insertMessage,
+  findDirectConversation,
+  createDirectConversation,
+  findSessionConversation,
+  createSessionConversation,
+  getInfoConversationById
 };

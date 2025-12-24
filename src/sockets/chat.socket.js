@@ -2,25 +2,37 @@ import chatService from '../api/chat/chat.service.js';
 
 export default function chatSocket(io, socket) {
 
-  socket.on('join_conversation', (conversationId) => {
-    socket.join(`conversation_${conversationId}`);
+  socket.on('chat:join', (conversationId) => {
+    try {
+    socket.join(`chat:${conversationId}`);
+    } catch (err) {
+      console.error(err);
+      socket.emit('chat:error', 'Error al unirse al chat');
+    }
   });
 
-  socket.on('send_message', async (data) => {
+  socket.on('chat:send', async ({ conversationId, senderId, message }) => {
     try {
-      const senderId = socket.user.id;
+      console.log('Mensaje recibido:', { conversationId, message });
+      if (!conversationId || !message?.trim()) {
+        socket.emit('chat:error', 'Mensaje inválido');
+        return;
+      }
 
-      const message = await chatService.createMessage({
-        conversationId: data.conversationId,
+      //const senderId = socket.user.id; // Cuando se implemente auth
+
+      const savedMessage = await chatService.createMessage({
+        conversationId,
         senderId,
-        content: data.message
+        content: message.trim(),
       });
 
-      io.to(`conversation_${data.conversationId}`)
-        .emit('new_message', message);
+      io.to(`chat:${conversationId}`)
+        .emit('chat:new', savedMessage);
 
     } catch (err) {
-      socket.emit('error_message', err.message);
+      console.error(err);
+      socket.emit('chat:error', 'Error enviando mensaje');
     }
   });
 }

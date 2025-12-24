@@ -71,9 +71,25 @@ const get_services_photographer = async (req, res) => {
     }
 };
 
+const get_photo_by_id = async (req, res) => {
+    try {
+        const { photographer_id } = req.body;
+        if (!photographer_id) {
+            throw new AppError('photographer_id es requerido', 400);
+        }
+
+        const photo = await mapDao.getNearbyPhotographerById(photographer_id);
+        console.log('Photo found:', photo);
+        return successResponse(res, photo);
+    } catch (error) {
+        return errorResponse(res, error);
+    }
+};
+
 
 export default {
     getNearbyPhotographers,
     get_services_photographer,
-    get_gallery_photographer
+    get_gallery_photographer,
+    get_photo_by_id
 };

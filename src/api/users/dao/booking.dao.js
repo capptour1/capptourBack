@@ -42,7 +42,7 @@ const save_services = async (reservationId, services, transaction) => {
 const get_bookings_by_user = async (userId) => {
     console.log('Get bookings by user DAO called', userId);
     const bookings = await sequelize.query(
-        `SELECT fr.id_reserva, fr.id_usuario, u.nombre_completo AS nombre_fotografo, fr.fecha, 
+        `SELECT fr.id_reserva, fr.id_usuario, fr.id_fotografo, u.nombre_completo AS nombre_fotografo, fr.fecha, 
             fr.hora_inicio, fr.hora_fin, 0 as mensajes_no_leidos,
             fr.estado
             FROM fotografo.foto_reserva fr

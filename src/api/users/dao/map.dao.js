@@ -72,7 +72,7 @@ const getNearbyPhotographers = async (lat, lng, role, priceMin) => {
             ? delta * 2
             : delta / 2;
     }
-    
+
     return photographers;
 };
 
@@ -111,8 +111,38 @@ const getGalleryPhotographer = async (photographerId) => {
     return result;
 }
 
+
+
+const getNearbyPhotographerById = async (PhotographerId) => {
+
+    const query = `
+        SELECT f.id, u.nombre_completo as name, fp.ubicacion as location, 5 as rating, 12 as jobs_count,
+        fp.descripcion as description, fp.precio_hora_cop as price_cop, fp.precio_hora_usd as price_usd,
+        fp.thumbnail
+        FROM fotografo.fotografos f
+        INNER JOIN auth.usuarios u ON f.usuario_id = u.id
+        INNER JOIN fotografo.foto_portafolio fp ON f.id = fp.id_fotografo
+        INNER JOIN fotografo.foto_experiencia fe ON f.id = fe.id_fotografo
+        WHERE f.id = :PhotographerId
+      `;
+
+    const result = await sequelize.query(query, {
+        replacements: {
+            PhotographerId
+        },
+        type: QueryTypes.SELECT
+    });
+
+    if (result.length === 0) {
+        throw new AppError('Fotógrafo no encontrado', 404);
+    }
+
+    return result[0];
+};
+
 export default {
     getNearbyPhotographers,
     getServicesPhotographer,
-    getGalleryPhotographer
+    getGalleryPhotographer,
+    getNearbyPhotographerById
 };

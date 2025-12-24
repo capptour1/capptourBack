@@ -50,7 +50,7 @@ const sendMessage = async (req, res) => {
 const getOrCreateConversation = async (req, res) => {
   let t = null;
   try {
-    console.log('getOrCreateConversation called with body:', req.body);
+    
     const { type, client_id, photographer_id, session_id } = req.body;
 
     t = await chatDao.geTransaction();
