@@ -24,7 +24,6 @@ const getNearbyPhotographers = async (req, res) => {
             priceMin
         );
 
-        console.log('Photographers found:', photographers);
         
         return successResponse(
             res,

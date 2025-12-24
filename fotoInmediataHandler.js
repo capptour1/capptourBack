@@ -252,12 +252,5 @@ export function initFotoInmediata(io, usuariosConectados) {
         });
     });
 
-    //Debug de rooms cada 20 segundos
-    setInterval(() => {
-        const rooms = io.sockets.adapter.rooms;
-        const fotoRooms = Array.from(rooms.keys()).filter(room =>
-            room.startsWith('fotografo:') || room.startsWith('usuario:')
-        );
-        console.log('🏠 Rooms activos (foto):', fotoRooms);
-    }, 20000);
+
 } 

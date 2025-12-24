@@ -72,7 +72,7 @@ const getNearbyPhotographers = async (lat, lng, role, priceMin) => {
             ? delta * 2
             : delta / 2;
     }
-    console.log(`Photographers found: ${photographers.length} within delta: ${delta}`);
+    
     return photographers;
 };
 

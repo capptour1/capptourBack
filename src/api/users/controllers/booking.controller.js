@@ -43,7 +43,7 @@ const getBookings = async (req, res) => {
         for (let booking of bookings) {
             const services = await BookingDao.get_services_by_booking(booking.id_reserva);
             booking.servicios = services;
-
+            booking.fecha_real = booking.fecha;
             booking.fecha = formatDate(booking.fecha);
             booking.hora_inicio = formatTime(booking.hora_inicio);
             booking.hora_fin = formatTime(booking.hora_fin);

@@ -73,6 +73,7 @@ const get_history = async (req, res) => {
 const get_history_photos = async (req, res) => {
     try {
         const { booking_id } = req.body;
+        console.log('Received booking_id:', booking_id);
         const images = await explorerDao.get_full_image(booking_id);
         return successResponse(res, images);
     } catch (error) {
@@ -84,25 +85,23 @@ const get_history_photos = async (req, res) => {
 
 const get_info_booking = async (req, res) => {
     try {
-        const { bookingId } = req.body;
-        const info = await explorerDao.get_info_bookings(bookingId);
+        const { booking_id } = req.body;
+        const info = await explorerDao.get_info_bookings(booking_id);
         if (info.length === 0) {
             throw new AppError('No se encontró la reserva', 404);
         }
         let bookingInfo = info[0];
-        const services = await explorerDao.get_services_by_booking(bookingId);
+        const services = await explorerDao.get_services_by_booking(booking_id);
 
         let promedio = 0;
         for (let service of services) {
-            promedio += service.precio;
+            promedio += Number(service.precio_hora_cop);
         }
         promedio = promedio / services.length;
-
+        bookingInfo.format_date = formatDate(bookingInfo.date);
         bookingInfo.services = services;
         bookingInfo.price = promedio.toFixed(2);
 
-
-        //
 
         return successResponse(res, bookingInfo);
     }
