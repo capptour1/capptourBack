@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
-// ✅ Configurar multer para almacenamiento TEMPORAL
+//  Configurar multer para almacenamiento TEMPORAL
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         // Usar carpeta temporal del sistema
