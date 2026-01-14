@@ -12,7 +12,7 @@ setInterval(() => {
   }).on("error", (err) => {
     console.error("Error en auto-ping:", err.message);
   });
-}, 7000); // 120,000 ms = 2 minutos
+}, 720000); // 120,000 ms = 2 minutos
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
