@@ -25,4 +25,9 @@ router.post('/explorer-history-photos', explorerController.get_history_photos);
 router.post('/get-info-booking', explorerController.get_info_booking);
 router.post('/rate-booking', explorerController.rate_booking);
 
+
+// NEW ROUTES
+router.post('/search-photographers', mapController.searchPhotographers);
+router.post('/get-monedas', userController.get_monedas);
+
 export default router;

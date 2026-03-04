@@ -87,9 +87,46 @@ const get_photo_by_id = async (req, res) => {
 };
 
 
+// NUEVO CONTROLADOR PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL
+
+const searchPhotographers = async (req, res) => {
+    try {
+        const { latitude, longitude } = req.body;
+
+
+        if (!latitude || !longitude) {
+            return res.status(400).json({ message: 'Location requerida' });
+        }
+
+        const lat = latitude;
+        const lng = longitude;
+
+        const photographers = await mapDao.searchPhotographers(
+            lat,
+            lng,
+        );
+
+        console.log('Photographers found:', photographers);
+
+        
+        return successResponse(
+            res,
+            photographers
+        );
+
+        
+
+    } catch (error) {
+        console.error('getNearbyPhotographers error:', error);
+        return errorResponse(res, error);
+    }
+}
+
+
 export default {
     getNearbyPhotographers,
     get_services_photographer,
     get_gallery_photographer,
-    get_photo_by_id
+    get_photo_by_id,
+    searchPhotographers
 };

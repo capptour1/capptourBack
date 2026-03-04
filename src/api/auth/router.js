@@ -10,12 +10,10 @@ const upload = multer({
 });
 
 router.post('/login', AuthController.login);
-router.post('/register/client', AuthController.register_client);
-router.post(
-    '/register/photographer',
-    upload.any(),  
-    AuthController.register_photographer
-);
+// NUEVAS RUTAS
+router.post('/registerClient', AuthController.new_register_client);
+router.post('/registerPhotographer', upload.any(), AuthController.new_register_photographer);
+
 
 
 

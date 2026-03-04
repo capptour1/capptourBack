@@ -140,9 +140,112 @@ const getNearbyPhotographerById = async (PhotographerId) => {
     return result[0];
 };
 
+// =============================================================================
+
+/*
+Todo: Pendiente rating y número de trabajos realizados, así como experiencia y rol del fotógrafo.
+*/
+
+const searchPhotographers = async (lat, lng) => {
+
+    let delta = 0.1; // ~3 km inicial
+    let photographers = [];
+    const MIN_RESULTS = 10;
+    const MAX_RESULTS = 150;
+    const MAX_ITERATIONS = 5;
+
+    const bounds = {
+        minLat: lat - delta,
+        maxLat: lat + delta,
+        minLng: lng - delta,
+        maxLng: lng + delta,
+    };
+
+
+    for (let i = 0; i < MAX_ITERATIONS; i++) {
+
+        const query = `
+        SELECT 
+            f.id,
+            u.nombre_completo AS nombre,
+            5 AS rating,
+            12 AS solicitudes,
+            l.latitud,
+            l.longitud,
+
+            POWER(l.latitud - :lat, 2) +
+            POWER(l.longitud - :lng, 2) AS distancia,
+
+            CASE 
+                WHEN f.experiencia = 1 THEN 'Inicial'
+                WHEN f.experiencia = 2 THEN 'Intermedio'
+                WHEN f.experiencia = 3 THEN 'Experto'
+                ELSE 'Desconocido'
+            END AS experiencia,
+            f.experiencia as id_experiencia,
+            CASE 
+                WHEN f.rol = 1 THEN 'Colaborador'
+                WHEN f.rol = 2 THEN 'Profesional'
+                ELSE 'Desconocido'
+            END AS rol,
+            f.rol as id_rol,
+            fs.precio_hora_cop,
+            fs.precio_hora_usd
+
+        FROM fotografo.fotografos f
+        INNER JOIN auth.usuarios u 
+            ON f.usuario_id = u.id
+        INNER JOIN fotografo.localizacion l 
+            ON f.id = l.id_fotografo
+
+        LEFT JOIN LATERAL (
+            SELECT precio_hora_cop, precio_hora_usd
+            FROM fotografo.servicios fs
+            WHERE fs.id_fotografo = f.id
+            AND fs.estado = 'A'
+            ORDER BY fs.fec_creacion DESC
+            LIMIT 1
+        ) fs ON TRUE
+
+        WHERE l.latitud BETWEEN :minLat AND :maxLat
+        AND l.longitud BETWEEN :minLng AND :maxLng
+        AND f.is_active = true
+        AND u.rol_id = 5
+
+        ORDER BY distancia;
+      `;
+
+        const result = await sequelize.query(query, {
+            replacements: {
+                lat,
+                lng,
+                minLat: bounds.minLat,
+                maxLat: bounds.maxLat,
+                minLng: bounds.minLng,
+                maxLng: bounds.maxLng,
+            },
+            type: QueryTypes.SELECT
+        });
+        photographers = result;
+
+        if (photographers.length >= MIN_RESULTS &&
+            photographers.length <= MAX_RESULTS) {
+            break;
+        }
+
+        // Ajuste dinámico
+        delta = photographers.length < MIN_RESULTS
+            ? delta * 2
+            : delta / 2;
+    }
+
+    return photographers;
+};
+
 export default {
     getNearbyPhotographers,
     getServicesPhotographer,
     getGalleryPhotographer,
-    getNearbyPhotographerById
+    getNearbyPhotographerById,
+    searchPhotographers
 };

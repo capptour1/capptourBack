@@ -4,8 +4,10 @@ import AppError from '../../../utils/appError.js';
 import HelperResponse from '../../../utils/helperResponse.js';
 import jwt from 'jsonwebtoken';
 import sharp from 'sharp';
+import media from '../../../utils/media.js';
 const SECRET_KEY = 'secret_key'; // ← CLAVE UNIFICADA
 
+const { createThumbnail } = media;
 const { successResponse, errorResponse } = HelperResponse;
 
 
@@ -20,7 +22,12 @@ const login = async (req, res) => {
       throw new AppError('Credenciales inválidas', 401);
     }
 
-    const isPasswordValid = await AuthDAO.verify_password(password, user.password);
+    const isPasswordValid = await AuthDAO.verify_password(
+      password,
+      user.password,
+      user.id
+    );
+
     if (!isPasswordValid) {
       throw new AppError('Credenciales inválidas', 401);
     }
@@ -31,7 +38,6 @@ const login = async (req, res) => {
       { expiresIn: '2h' }
     );
 
-    console.log('🔑 LOGIN - Token generado con clave unificada')
     return successResponse(res, { token: token, userId: user.id, role: user.rol_id }, 'Login exitoso');
 
 
@@ -40,11 +46,14 @@ const login = async (req, res) => {
   }
 };
 
-const register_client = async (req, res) => {
+
+// NUEVO CONTROLADOR PARA REGISTRO DE CLIENTE DESDE APP MÓVIL
+
+const new_register_client = async (req, res) => {
   let t = null;
   try {
     t = await AuthDAO.start_transaction();
-    console.log('Register client controller called', req.body);
+    console.log('New register client controller called', req.body);
     const { name, email, password } = req.body;
 
     const emailExists = await AuthDAO.check_email_exists(email);
@@ -55,7 +64,8 @@ const register_client = async (req, res) => {
     const result = await AuthDAO.register_client(name, email, password, t);
     await t.commit();
     return successResponse(res, result, 'Client registered successfully');
-  } catch (error) {
+  }
+  catch (error) {
     if (t) {
       await t.rollback();
     }
@@ -63,94 +73,76 @@ const register_client = async (req, res) => {
   }
 };
 
-const register_photographer = async (req, res) => {
+const new_register_photographer = async (req, res) => {
   let t = null;
   try {
-    console.log('Register photographer controller called');
+    console.log('New register photographer controller called');
+
+    let { session, photographer, services } = req.body;
+
+    if (!session || !photographer || !services) {
+      return errorResponse(res, new AppError('Faltan datos obligatorios', 400));
+    }
+
+
     t = await AuthDAO.start_transaction();
 
-    const data = JSON.parse(req.body.data);
-    const files = req.files;
+    session = JSON.parse(session);
+    photographer = JSON.parse(photographer);
+    services = JSON.parse(services);
 
+    console.log('Session data:', session);
+    console.log('Photographer data:', photographer);
+    console.log('Services data:', services);
 
-    // guardar datos de sesion
-    const { name, email, password } = data.personal;
-
-    const emailExists = await AuthDAO.check_email_exists(email);
-    console.log('Email existence check for', email, ':', emailExists);
+    const emailExists = await AuthDAO.check_email_exists(session.email);
     if (emailExists) {
-      console.error('Email ya registrado:', email);
       throw new AppError('Email ya registrado', 500);
     }
 
-    const personal = await AuthDAO.register_user_photographer(name, email, password, t);
+    const personal = await AuthDAO.register_user_photographer(session.name, session.email, session.password, t);
     // Crear registro en tabla photographers
-    const photographer = await AuthDAO.register_photographer(personal.id, t);
+    const id_experience = photographer.experience;
+    const id_rol = photographer.rolType;
+    const infoPhoto = await AuthDAO.register_photographer_v2(personal.id, id_experience, id_rol, t);
 
-    // Guardar experiencia junto con el archivo en binario (cv)
-    const experience = data.experience;
-    const cvFile = files.find(file => file.fieldname === 'cv');
-    await AuthDAO.register_experience(photographer.id, experience, cvFile, t);
-
-    // guardar portfolio con foto principal
-    const portfolioData = data.portfolio;
-    const mainPhotoFile = files.find(file => file.fieldname === 'main_photo');
-
-    // create thumbnail using sharp
-    const thumbnailBuffer = await sharp(mainPhotoFile.buffer)
-      .resize(200, 200, { fit: 'cover' })
-      .jpeg({ quality: 70 }) // reduce tamaño manteniendo buena calidad
-      .toBuffer();
-
-    await AuthDAO.register_portfolio(photographer.id, portfolioData, mainPhotoFile, thumbnailBuffer, t);
-
-    // guardar servicios
-    const services = data.services;
-
-    let dataServices = [];
 
     for (let i = 0; i < services.length; i++) {
-      dataServices.push({
-        id_fotografo: photographer.id,
-        nombre: services[i].name,
-        descripcion: services[i].description,
-        precio_hora_cop: services[i].price_per_hour_cop,
-        precio_hora_usd: services[i].price_per_hour_usd,
-        precio_foto_cop: services[i].price_per_photo_cop,
-        precio_foto_usd: services[i].price_per_photo_usd,
-        fotos_editadas: services[i].edited_photos,
-        fotos_sin_editar: services[i].unedited_photos
-      });
+      const service = services[i];
+      const dataService = {
+        nombre: service.name,
+        descripcion: service.description,
+        precio_hora_cop: service.price_hour_cop,
+        precio_hora_usd: service.price_hour_usd,
+        editadas: service.edited,
+        no_editadas: service.unedited,
+        id_fotografo: infoPhoto.id
+      };
+
+
+      const insertedService = await AuthDAO.register_services_v2(dataService, t);
+
+      // buscar todas las fotos del servicio actual
+      const serviceFiles = req.files.filter(file => file.fieldname.startsWith(`service_${service.id}_`));
+
+      let imagesData = [];
+
+      for (let j = 0; j < serviceFiles.length; j++) {
+        const file = serviceFiles[j];
+        const thumbnailBuffer = await createThumbnail(file);
+
+        imagesData.push({
+          id_servicio: insertedService.id_servicio,
+          imagen: file,
+          thumbnail: thumbnailBuffer
+        });
+      }
+
+      await AuthDAO.register_gallery_images_v2(imagesData, t);
     }
 
-    await AuthDAO.register_services(dataServices, t);
 
-    console.log('Preparing to save gallery photos', req.files);
-    // guardar fotos de la galeria
-    const galleryFiles = files.filter(f => f.fieldname.startsWith("gallery"));
-    console.log('Gallery files found:', galleryFiles.length);
-    let dataGallery = [];
-
-    for (let i = 0; i < galleryFiles.length; i++) {
-      const file = galleryFiles[i];
-      const thumbnailBuffer = await sharp(file.buffer)
-        .resize(300, 300, { fit: 'cover' })
-        .jpeg({ quality: 70 }) // reduce tamaño manteniendo buena calidad
-        .toBuffer();
-      dataGallery.push({
-        id_fotografo: photographer.id,
-        imagen: file,
-        thumbnail: thumbnailBuffer
-      });
-    }
-
-
-    console.log('Gallery files to be saved:', dataGallery.length);
-
-    await AuthDAO.register_gallery(dataGallery, t);
-
-    await t.commit();
-
+    await t.commit()
     return successResponse(res, {}, 'Photographer registered successfully');
   } catch (error) {
     if (t) {
@@ -158,11 +150,12 @@ const register_photographer = async (req, res) => {
     }
     return errorResponse(res, error);
   }
-};
+
+}
 
 
 export default {
   login,
-  register_client,
-  register_photographer,
+  new_register_client,
+  new_register_photographer,
 };
