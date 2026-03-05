@@ -112,8 +112,8 @@ const new_register_photographer = async (req, res) => {
       const dataService = {
         nombre: service.name,
         descripcion: service.description,
-        precio_hora_cop: service.price_hour_cop,
-        precio_hora_usd: service.price_hour_usd,
+        precio_hora: service.price_hour,
+        id_moneda: service.currency_id,
         editadas: service.edited,
         no_editadas: service.unedited,
         id_fotografo: infoPhoto.id

@@ -1,55 +1,10 @@
 
 import sequelize from '../../../models/index.js';
 import { QueryTypes } from 'sequelize';
-import AppError from '../../../utils/appError.js';
-
-const get_user_by_id = async (userId) => {
-    const result = await sequelize.query(
-        `SELECT u.id AS userId, u.nombre_completo, u.email as correo ,TRUE AS estado, 
-            contacto.detalle as telefono
-            FROM auth.usuarios u 
-            LEFT JOIN (
-                SELECT *,
-                ROW_NUMBER() OVER (PARTITION BY c.id_usuario ORDER BY c.id_contacto DESC) AS rn
-                FROM auth.contacto c
-                WHERE c.id_usuario = cast(:userId AS int) and c.tipo = 2            
-            ) AS contacto ON contacto.id_usuario = u.id AND contacto.rn = 1
-            WHERE u.rol_id = 3 AND u.id = cast(:userId AS int)
-            `,
-        {
-            replacements: { userId },
-            type: QueryTypes.SELECT
-        }
-    );
-    if (result.length === 0) {
-        throw new AppError('Usuario no encontrado', 404);
-    }
-    return result[0];
-
-};
 
 
-const get_info_photo_by_id = async (userId) => {
-    const result = await sequelize.query(
-        `SELECT u.id AS userId, u.nombre_completo, u.email as correo ,TRUE AS estado,
-            contacto.detalle as telefono, p.descripcion, p.url_portada, p.url_perfil, p.url_galeria, p.url_redes_sociales, p.url_otros, p.id AS id_portafolio
-            FROM auth.usuarios u 
-            LEFT JOIN (
-                SELECT *,       
-                ROW_NUMBER() OVER (PARTITION BY c.id_usuario ORDER BY c.id_contacto DESC) AS rn
-                FROM auth.contacto c
-                WHERE c.id_usuario = cast(:userId AS int) and c.tipo = 2
-            ) AS contacto ON contacto.id_usuario = u.id AND contacto.rn = 1
-            LEFT JOIN portafolio p ON p.id_usuario = u.id
-            WHERE u.rol_id = 3 AND u.id = cast(:userId AS int)
-            `,
-        {
-            replacements: { userId },
-            type: QueryTypes.SELECT
-        }
-    );
-    return result[0];
-};
+
+// NUEVO DAO PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL
 
 const get_monedas = async () => {
   const result = await sequelize.query(
@@ -62,8 +17,71 @@ const get_monedas = async () => {
 
 };
 
+
+const getInfoPhotoById = async (photographerId) => {
+    const result = await sequelize.query(
+        `SELECT f.id AS id_fotografo, NULL AS biografia, NULL AS herramientas,
+            5 AS rating, 120 AS reservas, TRUE AS favorito,
+            '3162388201' AS celular,
+            l.latitud, l.longitud,
+            te.descripcion AS experiencia,
+            tr.descripcion AS rol
+            FROM fotografo.fotografos f 
+            INNER JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
+            INNER JOIN fotografo.tipo_experiencia te ON f.id_experiencia = te.id_experiencia 
+            INNER JOIN fotografo.tipo_rol tr ON f.id_rol = tr.id_rol 
+            WHERE f.id = cast(:id_fotografo AS int);`,
+        {
+            replacements: { id_fotografo: photographerId },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result[0];
+};
+
+const getInfoServicesByPhotographerId = async (photographerId) => {
+    const result = await sequelize.query(
+        `SELECT s.id_servicio, s.nombre, s.descripcion, s.precio_hora, s.editadas, s.no_editadas, tm.id_moneda, tm.codigo 
+            FROM fotografo.servicios s 
+            INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda 
+            WHERE s.id_fotografo = cast(:id_fotografo AS int);`,
+        {
+            replacements: { id_fotografo: photographerId },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result;
+};
+
+const getInfoGalleryByPhotographerId = async (photographerId) => {
+    const result = await sequelize.query(
+        `SELECT s.id_servicio, t.id_imagen, t.thumbnail 
+            FROM fotografo.servicios s 
+            INNER JOIN fotografo.imagen_servicio t ON s.id_servicio = t.id_servicio 
+            WHERE s.id_fotografo = cast(:id_fotografo AS int);`,
+        {
+            replacements: { id_fotografo: photographerId },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result;
+}
+
+const loadFullImageById = async (imageId) => {
+    const result = await sequelize.query(
+        `SELECT id_imagen, imagen FROM fotografo.imagen_servicio WHERE id_imagen = cast(:id_imagen AS int);`,
+        {
+            replacements: { id_imagen: imageId },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result[0];
+};
+
 export default {
-    get_user_by_id,
-    get_info_photo_by_id,
-    get_monedas
+    get_monedas,
+    getInfoPhotoById,
+    getInfoServicesByPhotographerId,
+    getInfoGalleryByPhotographerId,
+    loadFullImageById
 };

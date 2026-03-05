@@ -4,35 +4,7 @@ import HelperResponse from '../../../utils/helperResponse.js';
 
 const { successResponse, errorResponse } = HelperResponse;
 
-const get_user_by_id = async (req, res) => {
-  try {
-    console.log('Get user by ID controller called', req.body);
-    const { userId } = req.body;
-    const user = await UserDAO.get_user_by_id(userId);
-    if (!user) {
-      throw new AppError('Fotógrafo no encontrado', 404);
-    }
-    return successResponse(res, user, 'Fotógrafo encontrado');
-  } catch (error) {
-    return errorResponse(res, error);
-  }
-};
-
-
-const get_info_photo_by_id = async (req, res) => {
-  try {
-    console.log('Get info photographer by ID controller called', req.body);
-    const { userId } = req.body;
-    const userInfo = await UserDAO.get_info_photo_by_id(userId);
-    if (!userInfo) {
-      throw new AppError('Información del fotógrafo no encontrada', 404);
-    }
-    return successResponse(res, userInfo, 'Información del fotógrafo encontrada');
-  }
-  catch (error) {
-    return errorResponse(res, error);
-  }
-};
+/* NUEVO CONTROLADOR PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL */
 
 
 const get_monedas = async (req, res) => {
@@ -45,10 +17,31 @@ const get_monedas = async (req, res) => {
     return errorResponse(res, error);
   }
 };
+const getInfoPhotoById = async (req, res) => {
+  try {
+    console.log('Get info photographer by ID controller called', req.body);
+    const { id_fotografo } = req.body;
+    const userInfo = await UserDAO.getInfoPhotoById(id_fotografo);
+    if (!userInfo) {
+      throw new AppError('Información del fotógrafo no encontrada', 404);
+    }
+    const servicios = await UserDAO.getInfoServicesByPhotographerId(id_fotografo);
+    const galeria = await UserDAO.getInfoGalleryByPhotographerId(id_fotografo);
+    const data = {
+      userInfo: userInfo,
+      servicios: servicios,
+      galeria: galeria
+    };
+    return successResponse(res, data, 'Información del fotógrafo encontrada');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
 
 
 export default {
-  get_user_by_id,
-  get_info_photo_by_id,
-  get_monedas
+
+  get_monedas,
+  getInfoPhotoById
 };

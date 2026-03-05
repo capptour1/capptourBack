@@ -157,18 +157,18 @@ const register_photographer_v2 = async (user_id, experience_id, rol_id, transact
 const register_services_v2 = async (service, transaction) => {
   try {
     const result = await sequelize.query(
-      `INSERT INTO fotografo.servicios (id_fotografo, nombre, descripcion, precio_hora_cop,
-        precio_hora_usd, editadas, no_editadas)
-        VALUES (:photographer_id, :name, :description, :price_hour_cop,
-        :price_hour_usd, :edited_photos, :unedited_photos)
+      `INSERT INTO fotografo.servicios (id_fotografo, nombre, descripcion, precio_hora,
+        id_moneda, editadas, no_editadas)
+        VALUES (:photographer_id, :name, :description, :price_hour,
+        :currency_id, :edited_photos, :unedited_photos)
         RETURNING *;`,
       {
         replacements: {
           photographer_id: service.id_fotografo,
           name: service.nombre,
           description: service.descripcion,
-          price_hour_cop: service.precio_hora_cop,
-          price_hour_usd: service.precio_hora_usd,
+          price_hour: service.precio_hora,
+          currency_id: service.id_moneda,
           edited_photos: service.editadas,
           unedited_photos: service.no_editadas
         },
