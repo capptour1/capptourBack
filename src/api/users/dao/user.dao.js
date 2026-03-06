@@ -20,13 +20,16 @@ const get_monedas = async () => {
 
 const getInfoPhotoById = async (photographerId) => {
     const result = await sequelize.query(
-        `SELECT f.id AS id_fotografo, NULL AS biografia, NULL AS herramientas,
+        `SELECT f.id AS id_fotografo, 
+            u.nombre_completo as nombre,
+            NULL AS biografia, NULL AS herramientas,
             5 AS rating, 120 AS reservas, TRUE AS favorito,
             '3162388201' AS celular,
             l.latitud, l.longitud,
             te.descripcion AS experiencia,
             tr.descripcion AS rol
             FROM fotografo.fotografos f 
+            INNER JOIN auth.usuarios u ON f.usuario_id = u.id
             INNER JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
             INNER JOIN fotografo.tipo_experiencia te ON f.id_experiencia = te.id_experiencia 
             INNER JOIN fotografo.tipo_rol tr ON f.id_rol = tr.id_rol 
