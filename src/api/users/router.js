@@ -11,5 +11,6 @@ const router = express.Router();
 router.post('/search-photographers', mapController.searchPhotographers);
 router.post('/get-monedas', userController.get_monedas);
 router.post('/get-info-photographer', userController.getInfoPhotoById);
+router.post('/get-services-photographer', userController.getServicesByPhotographerId);
 
 export default router;
