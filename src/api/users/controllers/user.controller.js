@@ -41,7 +41,7 @@ const getInfoPhotoById = async (req, res) => {
   }
 };
 
-const getServicesByPhotographerId = async (req, res) => {
+const getServicesGalleryByPhotographerId = async (req, res) => {
   try {
     console.log('Get info services by photographer ID controller called', req.body);
     const { id_fotografo } = req.body;
@@ -58,9 +58,22 @@ const getServicesByPhotographerId = async (req, res) => {
   }
 };
 
+const getServicesByPhotographerId = async (req, res) => {
+  try {
+    console.log('Get info services by photographer ID controller called', req.body);
+    const { id_fotografo } = req.body;
+    const servicios = await UserDAO.getInfoServicesByPhotographerId(id_fotografo);
+    return successResponse(res, servicios, 'Servicios del fotógrafo encontrados');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
 export default {
 
   get_monedas,
   getInfoPhotoById,
+  getServicesGalleryByPhotographerId,
   getServicesByPhotographerId 
 };

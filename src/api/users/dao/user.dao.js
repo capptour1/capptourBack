@@ -44,10 +44,10 @@ const getInfoPhotoById = async (photographerId) => {
 
 const getInfoServicesByPhotographerId = async (photographerId) => {
     const result = await sequelize.query(
-        `SELECT s.id_servicio, s.nombre, s.descripcion, s.precio_hora, s.editadas, s.no_editadas, tm.id_moneda, tm.codigo 
+        `SELECT s.id_servicio, s.nombre, s.descripcion, s.precio_hora, s.editadas, s.no_editadas, tm.id_moneda, tm.codigo, s.id_fotografo 
             FROM fotografo.servicios s 
             INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda 
-            WHERE s.id_fotografo = cast(:id_fotografo AS int);`,
+            --WHERE s.id_fotografo = cast(:id_fotografo AS int);`,
         {
             replacements: { id_fotografo: photographerId },
             type: QueryTypes.SELECT
@@ -61,7 +61,7 @@ const getInfoGalleryByPhotographerId = async (photographerId) => {
         `SELECT s.id_servicio, t.id_imagen, t.thumbnail 
             FROM fotografo.servicios s 
             INNER JOIN fotografo.imagen_servicio t ON s.id_servicio = t.id_servicio 
-            WHERE s.id_fotografo = cast(:id_fotografo AS int);`,
+           --WHERE s.id_fotografo = cast(:id_fotografo AS int);`,
         {
             replacements: { id_fotografo: photographerId },
             type: QueryTypes.SELECT
