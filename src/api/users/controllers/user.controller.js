@@ -70,10 +70,50 @@ const getServicesByPhotographerId = async (req, res) => {
   }
 };
 
+const addServiceRequest = async (req, res) => {
+  let t = null;
+  try {
+    t = await UserDAO.getTransaction();
+    const { id_cliente, id_fotografo, id_servicio, fecha, hora_inicio, hora_fin, longitud, latitud, notas } = req.body;
+    const info = {
+      id_cliente,
+      id_servicio,
+      fecha,
+      hora_inicio,
+      hora_fin,
+      longitud,
+      latitud,
+      notas
+    }
+    const reservation = await UserDAO.addServiceRequest(info, t);
+    const basicInfoPhotographer = await UserDAO.getBasicInfoPhotographerById(id_fotografo);
+    const response = {
+      id_reserva: reservation.id_reserva,
+      id_cliente,
+      id_fotografo: basicInfoPhotographer.id_fotografo,
+      id_servicio,
+      fecha,
+      hora_inicio,
+      hora_fin,
+      longitud,
+      latitud,
+      notas,
+      nombre_fotografo: basicInfoPhotographer.nombre
+    };
+    console.log('Service request created with data:', response);
+    await t.rollback(); // Rollback para pruebas, eliminar en producción
+    return successResponse(res, response, 'Reserva creada exitosamente');
+  } catch (error) {
+    if (t) await t.rollback();
+    return errorResponse(res, error);
+  }
+};
+
 export default {
 
   get_monedas,
   getInfoPhotoById,
   getServicesGalleryByPhotographerId,
-  getServicesByPhotographerId 
+  getServicesByPhotographerId,
+  addServiceRequest
 };
