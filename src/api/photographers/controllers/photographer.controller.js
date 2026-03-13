@@ -193,6 +193,35 @@ const deleteService = async (req, res) => {
   }
 };
 
+
+// NUEVO CONTROLADOR PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL
+
+
+const getInfoPhotoDbById = async (req, res) => {
+    try {
+        const { id_usuario } = req.body;
+        console.log('Get info photo by ID controller called', req.body);
+
+        const photographerInfo = await PhotographerDAO.getInfoPhotoDbById(id_usuario);
+        const sessionsInfo = await PhotographerDAO.getInfoSessionPhotoDbById(id_usuario);
+
+        if (!photographerInfo) {
+            throw new AppError('Fotógrafo no encontrado', 404);
+        }
+
+        const result = {
+            ...photographerInfo,
+            sessions: sessionsInfo
+        };
+
+        return successResponse(res, result, 'Información del fotógrafo obtenida correctamente');
+    }
+    catch (error) {
+        console.error('Error en getInfoPhotoDbById controller:', error);
+        return errorResponse(res, error);
+    }
+};
+
 export default {
   getPhotographerById: get_photographer_by_id,
   updateBio: update_bio,
@@ -204,5 +233,8 @@ export default {
   uploadImagePortfolio: uploadImagePortfolio,
   getServices: getServices,
   addService: addService,
-  deleteService: deleteService
+  deleteService: deleteService,
+
+
+  getInfoPhotoDbById,
 };

@@ -230,10 +230,10 @@ const addService = async (photographerId, data) => {
         VALUES (cast(:photographerId AS int), :serviceName, :description, :priceHourCop, :priceHourUsd, :pricePhotoCop, :pricePhotoUsd, :photosEdited, :photosUnedited)
         `,
         {
-            replacements: { 
-                photographerId: photographerId, 
-                serviceName: data.nombre, 
-                description: data.descripcion, 
+            replacements: {
+                photographerId: photographerId,
+                serviceName: data.nombre,
+                description: data.descripcion,
                 priceHourCop: data.precio_hora_cop,
                 priceHourUsd: data.precio_hora_usd,
                 pricePhotoCop: data.precio_foto_cop,
@@ -259,6 +259,55 @@ const deleteService = async (serviceId) => {
 };
 
 
+// NUEVO DAO PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL
+
+const getInfoPhotoDbById = async (id_usuario) => {
+    const result = await sequelize.query(
+        `SELECT f.id AS id_fotografo, 
+            null as thumbnail,
+            u.nombre_completo as nombre,
+            l.latitud, l.longitud
+            FROM fotografo.fotografos f 
+            INNER JOIN auth.usuarios u ON f.usuario_id = u.id
+            INNER JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
+            WHERE f.usuario_id = cast(:id_usuario AS int)`
+        ,
+        {
+            replacements: { id_usuario: id_usuario },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result[0];
+};
+
+const getInfoSessionPhotoDbById = async (id_usuario) => {
+    const result = await sequelize.query(
+        `SELECT 
+            r.id_reserva, r.fecha, r.hora_inicio, r.hora_fin, r.estado, r.fec_creacion,
+            r.latitud, r.longitud,
+            c.id as id_cliente, c.nombre_completo as nombre_cliente,
+            null as thumbnail_cliente, 
+            s.id_servicio, s.nombre as nombre_servicio, s.descripcion as descripcion_servicio,
+            s.precio_hora, s.editadas, s.no_editadas,
+            tm.codigo
+        FROM fotografo.fotografos f
+        INNER JOIN auth.usuarios u ON f.usuario_id = u.id
+        INNER JOIN fotografo.servicios s ON f.id = s.id_fotografo
+        INNER JOIN reserva.reserva r ON r.id_servicio = s.id_servicio
+        INNER JOIN auth.usuarios c ON r.id_cliente = c.id
+        INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda
+        WHERE f.usuario_id = cast(:id_usuario AS int)`
+        ,
+        {
+            replacements: { id_usuario: id_usuario },
+            type: QueryTypes.SELECT
+        }
+    );
+
+    return result;
+}
+
+
 export default {
     start_transaction,
     get_photographer_by_id,
@@ -273,6 +322,11 @@ export default {
     getServices,
     addService,
     deleteService
+
+
+    // NUEVO DAO PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL
+    , getInfoPhotoDbById,
+    getInfoSessionPhotoDbById
 };
 
 
