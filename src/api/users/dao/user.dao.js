@@ -104,9 +104,13 @@ const addServiceRequest = async (reservationData, transaction) => {
 const getBasicInfoPhotographerById = async (photographerId) => {
     const result = await sequelize.query(
         `SELECT f.id AS id_fotografo,
-            u.nombre_completo as nombre
+            u.nombre_completo as nombre,
+            te.descripcion AS experiencia,
+            tr.descripcion AS rol
             FROM fotografo.fotografos f 
             INNER JOIN auth.usuarios u ON f.usuario_id = u.id
+            INNER JOIN fotografo.tipo_experiencia te ON f.id_experiencia = te.id_experiencia
+            INNER JOIN fotografo.tipo_rol tr ON f.id_rol = tr.id_rol
             WHERE f.id = cast(:id_fotografo AS int);`,
         {
             replacements: { id_fotografo: photographerId },
@@ -114,6 +118,18 @@ const getBasicInfoPhotographerById = async (photographerId) => {
         }
     );
     console.log('DAO - Basic info photographer result:', result);
+    return result[0];
+}
+
+const getBasicInfoServiceById = async (serviceId) => {
+    const result = await sequelize.query(
+        `SELECT id_servicio, nombre FROM fotografo.servicios WHERE id_servicio = cast(:id_servicio AS int);`,
+        {
+            replacements: { id_servicio: serviceId },
+            type: QueryTypes.SELECT
+        }
+    );
+    console.log('DAO - Basic info service result:', result);
     return result[0];
 }
 
@@ -127,5 +143,6 @@ export default {
     getInfoGalleryByPhotographerId,
     loadFullImageById,
     addServiceRequest,
-    getBasicInfoPhotographerById
+    getBasicInfoPhotographerById,
+    getBasicInfoServiceById
 };

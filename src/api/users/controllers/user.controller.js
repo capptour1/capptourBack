@@ -85,13 +85,18 @@ const addServiceRequest = async (req, res) => {
       latitud,
       notas
     }
+    console.log('Add service request controller called with data:', info);
     const reservation = await UserDAO.addServiceRequest(info, t);
     const basicInfoPhotographer = await UserDAO.getBasicInfoPhotographerById(id_fotografo);
+    const basicInfoService = await UserDAO.getBasicInfoServiceById(id_servicio);
     const response = {
       id_reserva: reservation.id_reserva,
       id_cliente,
       id_fotografo: basicInfoPhotographer.id_fotografo,
+      rol: basicInfoPhotographer.rol,
+      experiencia: basicInfoPhotographer.experiencia,
       id_servicio,
+      nombre_servicio: basicInfoService.nombre,
       fecha,
       hora_inicio,
       hora_fin,
@@ -101,7 +106,7 @@ const addServiceRequest = async (req, res) => {
       nombre_fotografo: basicInfoPhotographer.nombre
     };
     console.log('Service request created with data:', response);
-    await t.rollback(); // Rollback para pruebas, eliminar en producción
+    await t.commit();
     return successResponse(res, response, 'Reserva creada exitosamente');
   } catch (error) {
     if (t) await t.rollback();
