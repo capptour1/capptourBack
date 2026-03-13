@@ -296,7 +296,7 @@ const getInfoSessionPhotoDbById = async (id_usuario) => {
         INNER JOIN reserva.reserva r ON r.id_servicio = s.id_servicio
         INNER JOIN auth.usuarios c ON r.id_cliente = c.id
         INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda
-        WHERE f.usuario_id = cast(:id_usuario AS int)`
+        --WHERE f.usuario_id = cast(:id_usuario AS int)`
         ,
         {
             replacements: { id_usuario: id_usuario },
