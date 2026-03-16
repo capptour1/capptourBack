@@ -198,28 +198,56 @@ const deleteService = async (req, res) => {
 
 
 const getInfoPhotoDbById = async (req, res) => {
-    try {
-        const { id_usuario } = req.body;
-        console.log('Get info photo by ID controller called', req.body);
+  try {
+    const { id_usuario } = req.body;
+    console.log('Get info photo by ID controller called', req.body);
 
-        const photographerInfo = await PhotographerDAO.getInfoPhotoDbById(id_usuario);
-        const sessionsInfo = await PhotographerDAO.getInfoSessionPhotoDbById(id_usuario);
+    const photographerInfo = await PhotographerDAO.getInfoPhotoDbById(id_usuario);
+    const sessionsInfo = await PhotographerDAO.getInfoSessionPhotoDbById(id_usuario);
 
-        if (!photographerInfo) {
-            throw new AppError('Fotógrafo no encontrado', 404);
-        }
-
-        const result = {
-            ...photographerInfo,
-            sessions: sessionsInfo
-        };
-
-        return successResponse(res, result, 'Información del fotógrafo obtenida correctamente');
+    if (!photographerInfo) {
+      throw new AppError('Fotógrafo no encontrado', 404);
     }
-    catch (error) {
-        console.error('Error en getInfoPhotoDbById controller:', error);
-        return errorResponse(res, error);
+
+    const result = {
+      ...photographerInfo,
+      sessions: sessionsInfo
+    };
+
+    return successResponse(res, result, 'Información del fotógrafo obtenida correctamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+const changeStatusSession = async (req, res) => {
+  let t;
+  try {
+    t = await PhotographerDAO.start_transaction();
+    const { id_reserva, estado } = req.body;
+    console.log('Change status session controller called', req.body);
+    await PhotographerDAO.changeStatusSession(id_reserva, estado, t);
+    await t.commit();
+    return successResponse(res, { estado }, 'Estado de la sesión actualizado correctamente');
+  } catch (error) {
+    if (t) {
+      await t.rollback();
     }
+    return errorResponse(res, error);
+  }
+};
+
+const changeAvailability = async (req, res) => {
+  try {
+    const { id_usuario, disponibilidad } = req.body;
+    console.log('Change availability controller called', req.body);
+    await PhotographerDAO.changeAvailability(id_usuario, disponibilidad);
+    return successResponse(res, { disponibilidad }, 'Disponibilidad del fotógrafo actualizada correctamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
 };
 
 export default {
@@ -237,4 +265,6 @@ export default {
 
 
   getInfoPhotoDbById,
+  changeStatusSession,
+  changeAvailability
 };

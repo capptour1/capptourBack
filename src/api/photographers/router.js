@@ -33,6 +33,8 @@ router.post('/photoHistory', pBookingController.get_history);
 
 // NUEVO CONTROLADOR PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL
 router.post('/getInfoPhotoDbById', photographerController.getInfoPhotoDbById);
+router.post('/changeAvailability', photographerController.changeAvailability);
+router.post('/changeStatusServiceRequest', photographerController.changeStatusSession);
 
 
 export default router;

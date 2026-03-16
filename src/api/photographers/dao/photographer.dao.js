@@ -266,7 +266,8 @@ const getInfoPhotoDbById = async (id_usuario) => {
         `SELECT f.id AS id_fotografo, 
             null as thumbnail,
             u.nombre_completo as nombre,
-            l.latitud, l.longitud
+            l.latitud, l.longitud,
+            f.is_active as disponibilidad
             FROM fotografo.fotografos f 
             INNER JOIN auth.usuarios u ON f.usuario_id = u.id
             INNER JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
@@ -307,6 +308,33 @@ const getInfoSessionPhotoDbById = async (id_usuario) => {
     return result;
 }
 
+const changeStatusSession = async (id_reserva, estado) => {
+    await sequelize.query(
+        `UPDATE reserva.reserva
+        SET estado = :estado
+        WHERE id_reserva = cast(:id_reserva AS int)
+        `,
+        {
+            replacements: { id_reserva, newStatus },
+            type: QueryTypes.UPDATE
+        }
+    );
+}
+
+const changeAvailability = async (id_usuario, disponibilidad) => {
+    await sequelize.query(
+        `UPDATE fotografo.fotografos
+        SET is_active = cast(:disponibilidad AS boolean)
+        WHERE usuario_id = cast(:id_usuario AS int)
+        `,  
+        {
+            replacements: { id_usuario, disponibilidad },
+            type: QueryTypes.UPDATE
+        }
+    );
+}
+
+
 
 export default {
     start_transaction,
@@ -326,7 +354,9 @@ export default {
 
     // NUEVO DAO PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL
     , getInfoPhotoDbById,
-    getInfoSessionPhotoDbById
+    getInfoSessionPhotoDbById,
+    changeStatusSession,
+    changeAvailability
 };
 
 
