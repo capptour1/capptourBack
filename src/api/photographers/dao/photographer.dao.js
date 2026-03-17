@@ -315,7 +315,7 @@ const changeStatusSession = async (id_reserva, estado) => {
         WHERE id_reserva = cast(:id_reserva AS int)
         `,
         {
-            replacements: { id_reserva, newStatus },
+            replacements: { id_reserva, estado },
             type: QueryTypes.UPDATE
         }
     );
