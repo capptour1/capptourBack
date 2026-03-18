@@ -250,6 +250,18 @@ const changeAvailability = async (req, res) => {
   }
 };
 
+const getAllSessionsByPhotographer = async (req, res) => {
+  try {
+    const { id_usuario } = req.body;
+    console.log('Get all sessions by photographer controller called', req.body);
+    const sessions = await PhotographerDAO.getInfoSessionPhotoDbById(id_usuario);
+    return successResponse(res, sessions, 'Sesiones del fotógrafo obtenidas correctamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
 export default {
   getPhotographerById: get_photographer_by_id,
   updateBio: update_bio,
@@ -266,5 +278,6 @@ export default {
 
   getInfoPhotoDbById,
   changeStatusSession,
-  changeAvailability
+  changeAvailability,
+  getAllSessionsByPhotographer
 };

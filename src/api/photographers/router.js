@@ -35,6 +35,6 @@ router.post('/photoHistory', pBookingController.get_history);
 router.post('/getInfoPhotoDbById', photographerController.getInfoPhotoDbById);
 router.post('/changeAvailability', photographerController.changeAvailability);
 router.post('/changeStatusServiceRequest', photographerController.changeStatusSession);
-
+router.post('/getAllSessionsByPhotographer', photographerController.getAllSessionsByPhotographer);
 
 export default router;
