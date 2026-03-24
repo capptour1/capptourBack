@@ -262,6 +262,97 @@ const getAllSessionsByPhotographer = async (req, res) => {
   }
 };
 
+const uploadImagesDelivery = async (req, res) => {
+  let t;
+  try {
+    t = await PhotographerDAO.start_transaction();
+
+    const { id_reserva } = req.body;
+    const files = req.files;
+    console.log('Files received for delivery', files);
+
+    if (!files || files.length === 0) {
+      throw new AppError('No se han proporcionado imágenes para subir', 400);
+    }
+
+    const delivery = await PhotographerDAO.createDelivery(id_reserva, t);
+    const dataGallery = [];
+
+    for (const file of files) {
+      const thumbnailBuffer = await sharp(file.buffer)
+        .resize(300, 300, { fit: 'cover' })
+        .jpeg({ quality: 70 })
+        .toBuffer();
+      dataGallery.push({
+        id_entrega: delivery.id_entrega,
+        imagen: file.buffer,
+        thumbnail: thumbnailBuffer
+      });
+    }
+
+    const uploadedImages = await PhotographerDAO.uploadImagesDelivery(dataGallery, t);
+
+  } catch (error) {
+    if (t) {
+      await t.rollback();
+    }
+    return errorResponse(res, error);
+  }
+}
+
+const uploadImageDelivery = async (req, res) => {
+  let t;
+  try {
+    t = await PhotographerDAO.start_transaction();
+    const { id_reserva } = JSON.parse(req.body.data);
+    const file = req.file;
+    console.log('File received for delivery', file);
+    if (!file) { 
+      throw new AppError('No se ha proporcionado una imagen para subir', 400);
+    }
+    const delivery = await PhotographerDAO.createDelivery(id_reserva, t);
+    const thumbnailBuffer = await sharp(file.buffer)
+      .resize(300, 300, { fit: 'cover' })
+      .jpeg({ quality: 70 })
+      .toBuffer();
+    const dataGallery = {
+      id_entrega: delivery.id_entrega,
+      imagen: file.buffer,
+      thumbnail: thumbnailBuffer
+    };
+    const uploadedImage = await PhotographerDAO.uploadImagesDelivery([dataGallery], t);
+    await t.commit();
+    return successResponse(res, { message: 'Imagen subida correctamente' }, 'Imagen subida correctamente');
+  }
+  catch (error) {
+    if (t) {
+      await t.rollback();
+    }
+    return errorResponse(res, error);
+  }
+}
+
+const uploadLinksDelivery = async (req, res) => {
+  let t;
+  try {
+    t = await PhotographerDAO.start_transaction();
+    const { id_reserva, gdrive_link, icloud_link, airdrop_link, microsoft_link } = req.body;
+    console.log('Links received for delivery', req.body);
+    const links = { gdrive_link, icloud_link, airdrop_link, microsoft_link };
+    const delivery = await PhotographerDAO.createDelivery(id_reserva, t);
+    const uploadedLinks = await PhotographerDAO.uploadLinksDelivery(delivery.id_entrega, links, t);
+    await PhotographerDAO.completeSession(id_reserva, t);
+    await t.commit();
+    return successResponse(res, { message: 'Enlaces subidos correctamente' }, 'Enlaces subidos correctamente');
+  }
+  catch (error) { 
+    if (t) {
+      await t.rollback();
+    }
+    return errorResponse(res, error);
+  }
+}
+
 export default {
   getPhotographerById: get_photographer_by_id,
   updateBio: update_bio,
@@ -279,5 +370,8 @@ export default {
   getInfoPhotoDbById,
   changeStatusSession,
   changeAvailability,
-  getAllSessionsByPhotographer
+  getAllSessionsByPhotographer,
+  uploadImageDelivery,
+  uploadImagesDelivery,
+  uploadLinksDelivery
 };

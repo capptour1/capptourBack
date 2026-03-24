@@ -297,7 +297,8 @@ const getInfoSessionPhotoDbById = async (id_usuario) => {
         INNER JOIN reserva.reserva r ON r.id_servicio = s.id_servicio
         INNER JOIN auth.usuarios c ON r.id_cliente = c.id
         INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda
-        --WHERE f.usuario_id = cast(:id_usuario AS int)`
+        --WHERE f.usuario_id = cast(:id_usuario AS int);
+        `
         ,
         {
             replacements: { id_usuario: id_usuario },
@@ -326,7 +327,7 @@ const changeAvailability = async (id_usuario, disponibilidad) => {
         `UPDATE fotografo.fotografos
         SET is_active = cast(:disponibilidad AS boolean)
         WHERE usuario_id = cast(:id_usuario AS int)
-        `,  
+        `,
         {
             replacements: { id_usuario, disponibilidad },
             type: QueryTypes.UPDATE
@@ -334,7 +335,101 @@ const changeAvailability = async (id_usuario, disponibilidad) => {
     );
 }
 
+const createDelivery = async (id_reserva, transaction) => {
+    // verificar si ya existe una entrega para esta reserva
+    const existingDelivery = await sequelize.query(
+        `SELECT id_entrega
+        FROM reserva.entrega
+        WHERE id_reserva = cast(:id_reserva AS int) AND estado = 'A'
+        `,
 
+        {
+            replacements: { id_reserva },
+            type: QueryTypes.SELECT
+        }
+    );
+    // si existe una entrega activa, retornar la entrega existente
+    if (existingDelivery && existingDelivery.length > 0) {
+        return existingDelivery[0];
+    }
+
+    // si no existe una entrega activa, crear una nueva entrega y retornar la nueva entrega
+    const result = await sequelize.query(
+        `INSERT INTO reserva.entrega (id_reserva)
+        VALUES (cast(:id_reserva AS int))
+        `,
+        {
+            replacements: { id_reserva },
+            type: QueryTypes.INSERT,
+            transaction,
+            returning: true
+        }
+    );
+    return result[0];
+
+}
+
+const uploadImagesDelivery = async (dataImages, transaction) => {
+    for (const data of dataImages) {
+        await sequelize.query(
+            `INSERT INTO reserva.imagenes_entrega (id_entrega, imagen, thumbnail)
+            VALUES (cast(:id_entrega AS int), :imagen, :thumbnail)
+            `,
+            {
+                replacements: {
+                    id_entrega: data.id_entrega,
+                    imagen: data.imagen,
+                    thumbnail: data.thumbnail
+                },
+                type: QueryTypes.INSERT,
+                transaction
+            }
+        );
+    }
+
+    const result = await sequelize.query(
+        `SELECT id_entrega, thumbnail
+        FROM reserva.imagenes_entrega
+        WHERE id_entrega = cast(:id_entrega AS int)
+        `,
+        {
+            replacements: { id_entrega: dataImages[0].id_entrega },
+            type: QueryTypes.SELECT,
+            transaction
+        }
+    );
+    return result;
+}
+
+
+const uploadLinksDelivery = async (id_entrega, dataLinks, transaction) => {
+    const { gdrive_link, icloud_link, airdrop_link, microsoft_link } = dataLinks;
+    await sequelize.query(
+        `UPDATE reserva.entrega
+        SET link_gdrive = :gdrive_link, link_icloud = :icloud_link, link_airdrop = :airdrop_link, link_microsoft = :microsoft_link
+        `,
+        {
+            replacements: { id_entrega, gdrive_link, icloud_link, airdrop_link, microsoft_link },
+            type: QueryTypes.UPDATE,
+            transaction
+        }
+    );
+}
+
+
+const completeSession = async (id_reserva, transaction) => {
+    await sequelize.query(
+        `UPDATE reserva.reserva
+        SET estado = 'C'
+        WHERE id_reserva = cast(:id_reserva AS int)
+        `,
+        {
+            replacements: { id_reserva },
+            type: QueryTypes.UPDATE,
+            transaction
+        }
+    );
+}
 
 
 
@@ -359,7 +454,11 @@ export default {
     , getInfoPhotoDbById,
     getInfoSessionPhotoDbById,
     changeStatusSession,
-    changeAvailability
+    changeAvailability,
+    createDelivery,
+    uploadImagesDelivery,
+    uploadLinksDelivery,
+    completeSession
 };
 
 

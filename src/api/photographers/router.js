@@ -36,5 +36,8 @@ router.post('/getInfoPhotoDbById', photographerController.getInfoPhotoDbById);
 router.post('/changeAvailability', photographerController.changeAvailability);
 router.post('/changeStatusServiceRequest', photographerController.changeStatusSession);
 router.post('/getAllSessionsByPhotographer', photographerController.getAllSessionsByPhotographer);
+router.post('/uploadImagesDelivery', upload.any(), photographerController.uploadImagesDelivery);
+router.post('/uploadLinksDelivery', photographerController.uploadLinksDelivery);
+router.post('/uploadImageDelivery', upload.any(), photographerController.uploadImageDelivery);
 
 export default router;
