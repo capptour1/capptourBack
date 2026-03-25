@@ -304,12 +304,19 @@ const uploadImageDelivery = async (req, res) => {
   let t;
   try {
     t = await PhotographerDAO.start_transaction();
-    const { id_reserva } = JSON.parse(req.body.data);
-    const file = req.file;
-    console.log('File received for delivery', file);
+    let { id_reserva, first_time } = req.body;
+    id_reserva = parseInt(id_reserva);
+    first_time = first_time === 'true' || first_time === true;
+    const file = req.files ? req.files[0] : null;
     if (!file) { 
       throw new AppError('No se ha proporcionado una imagen para subir', 400);
     }
+
+    if (first_time) {
+      console.log('First time delivery, dropping existing images for reservation', id_reserva);
+      await PhotographerDAO.dropImagesDelivery(id_reserva, t);
+    }
+
     const delivery = await PhotographerDAO.createDelivery(id_reserva, t);
     const thumbnailBuffer = await sharp(file.buffer)
       .resize(300, 300, { fit: 'cover' })
@@ -320,9 +327,10 @@ const uploadImageDelivery = async (req, res) => {
       imagen: file.buffer,
       thumbnail: thumbnailBuffer
     };
-    const uploadedImage = await PhotographerDAO.uploadImagesDelivery([dataGallery], t);
+    let uploadedImage = await PhotographerDAO.uploadImageDelivery(dataGallery, t);
+    uploadImageDelivery.url = `capptour.app/delivery/session/${id_reserva}`;
     await t.commit();
-    return successResponse(res, { message: 'Imagen subida correctamente' }, 'Imagen subida correctamente');
+    return successResponse(res, uploadedImage, 'Imagen subida correctamente');
   }
   catch (error) {
     if (t) {

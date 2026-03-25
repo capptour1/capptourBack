@@ -348,24 +348,54 @@ const createDelivery = async (id_reserva, transaction) => {
             type: QueryTypes.SELECT
         }
     );
-    // si existe una entrega activa, retornar la entrega existente
     if (existingDelivery && existingDelivery.length > 0) {
         return existingDelivery[0];
     }
 
-    // si no existe una entrega activa, crear una nueva entrega y retornar la nueva entrega
     const result = await sequelize.query(
         `INSERT INTO reserva.entrega (id_reserva)
-        VALUES (cast(:id_reserva AS int))
-        `,
+     VALUES (cast(:id_reserva AS int))
+     RETURNING *`,
         {
             replacements: { id_reserva },
             type: QueryTypes.INSERT,
             transaction,
-            returning: true
         }
     );
-    return result[0];
+
+    return result[0][0];
+
+}
+
+const dropImagesDelivery = async (id_reserva, transaction) => {
+    // First, get the delivery ID associated with the reservation
+    const delivery = await sequelize.query(
+        `SELECT id_entrega
+        FROM reserva.entrega
+        WHERE id_reserva = cast(:id_reserva AS int)
+        `,
+        {
+            replacements: { id_reserva },
+            type: QueryTypes.SELECT
+        }
+    );
+
+    if (delivery && delivery.length > 0) {
+        const id_entrega = delivery[0].id_entrega;
+
+
+        await sequelize.query(
+            `DELETE FROM reserva.imagenes_entrega
+        WHERE id_entrega = cast(:id_entrega AS int)
+        `,
+            {
+                replacements: { id_entrega },
+                type: QueryTypes.DELETE,
+                transaction
+            }
+        );
+    }
+
 
 }
 
@@ -399,6 +429,25 @@ const uploadImagesDelivery = async (dataImages, transaction) => {
         }
     );
     return result;
+}
+
+const uploadImageDelivery = async (dataPicture, transaction) => {
+    const result = await sequelize.query(
+        `INSERT INTO reserva.imagenes_entrega (id_entrega, imagen, thumbnail)
+        VALUES (cast(:id_entrega AS int), :imagen, :thumbnail)
+            RETURNING id_imagen, thumbnail
+        `,
+        {
+            replacements: {
+                id_entrega: dataPicture.id_entrega,
+                imagen: dataPicture.imagen,
+                thumbnail: dataPicture.thumbnail
+            },
+            type: QueryTypes.INSERT,
+            transaction
+        }
+    );
+    return result[0][0];
 }
 
 
@@ -458,7 +507,10 @@ export default {
     createDelivery,
     uploadImagesDelivery,
     uploadLinksDelivery,
-    completeSession
+    completeSession,
+    dropImagesDelivery,
+    uploadImageDelivery
+
 };
 
 
