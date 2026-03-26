@@ -39,5 +39,6 @@ router.post('/getAllSessionsByPhotographer', photographerController.getAllSessio
 router.post('/uploadImagesDelivery', upload.any(), photographerController.uploadImagesDelivery);
 router.post('/uploadLinksDelivery', photographerController.uploadLinksDelivery);
 router.post('/uploadImageDelivery', upload.any(), photographerController.uploadImageDelivery);
+router.post('/deleteImageDelivery', photographerController.deleteImageDelivery);
 
 export default router;

@@ -328,9 +328,13 @@ const uploadImageDelivery = async (req, res) => {
       thumbnail: thumbnailBuffer
     };
     let uploadedImage = await PhotographerDAO.uploadImageDelivery(dataGallery, t);
-    uploadImageDelivery.url = `capptour.app/delivery/session/${id_reserva}`;
+    const resp = {
+      ...uploadedImage,
+      url: `capptour.app/delivery/session/${id_reserva}`
+    }
+    console.log('Image uploaded for delivery', resp);
     await t.commit();
-    return successResponse(res, uploadedImage, 'Imagen subida correctamente');
+    return successResponse(res, resp, 'Imagen subida correctamente');
   }
   catch (error) {
     if (t) {
@@ -361,6 +365,18 @@ const uploadLinksDelivery = async (req, res) => {
   }
 }
 
+const deleteImageDelivery = async (req, res) => {
+  try {
+    const { id_imagen } = req.body;
+    console.log('Delete image delivery controller called', req.body);
+    await PhotographerDAO.deleteImageDelivery(id_imagen);
+    return successResponse(res, { message: 'Imagen de entrega eliminada correctamente' }, 'Imagen de entrega eliminada correctamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+}
+
 export default {
   getPhotographerById: get_photographer_by_id,
   updateBio: update_bio,
@@ -381,5 +397,6 @@ export default {
   getAllSessionsByPhotographer,
   uploadImageDelivery,
   uploadImagesDelivery,
-  uploadLinksDelivery
+  uploadLinksDelivery,
+  deleteImageDelivery
 };

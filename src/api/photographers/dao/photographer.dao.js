@@ -480,6 +480,19 @@ const completeSession = async (id_reserva, transaction) => {
     );
 }
 
+const deleteImageDelivery = async (id_imagen, transaction) => {
+    await sequelize.query(
+        `DELETE FROM reserva.imagenes_entrega
+        WHERE id_imagen = cast(:id_imagen AS int)
+        `,
+        {
+            replacements: { id_imagen },
+            type: QueryTypes.DELETE,
+            transaction
+        }
+    );
+}
+
 
 
 
@@ -509,7 +522,8 @@ export default {
     uploadLinksDelivery,
     completeSession,
     dropImagesDelivery,
-    uploadImageDelivery
+    uploadImageDelivery,
+    deleteImageDelivery
 
 };
 
