@@ -15,4 +15,9 @@ router.post('/get-services-gallery-photographer', userController.getServicesGall
 router.post('/get-services-photographer', userController.getServicesByPhotographerId);
 router.post('/add-service-request', userController.addServiceRequest);
 
+
+router.post('/getCountries', userController.getCountries);
+router.post('/getGenders', userController.getGenders);
+
+router.post('/getInfoUserById', userController.getInfoUserById);
 export default router;

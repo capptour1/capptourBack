@@ -114,11 +114,53 @@ const addServiceRequest = async (req, res) => {
   }
 };
 
-export default {
 
+const getCountries = async (req, res) => {
+  try {
+    console.log('Get countries controller called');
+    const countries = await UserDAO.getCountries();
+    console.log('Countries obtained:', countries);
+    return successResponse(res, countries, 'Países obtenidos exitosamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+const getGenders = async (req, res) => {
+  try {
+    console.log('Get genders controller called');
+    const genders = await UserDAO.getGenders();
+    return successResponse(res, genders, 'Géneros obtenidos exitosamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+
+const getInfoUserById = async (req, res) => {
+  try {
+    console.log('Get info user by ID controller called', req.body);
+    const { id_usuario } = req.body;
+    const userInfo = await UserDAO.getInfoUserById(id_usuario);
+    if (!userInfo) {
+      throw new AppError('Información del usuario no encontrada', 404);
+    }
+    return successResponse(res, userInfo, 'Información del usuario encontrada');  
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+export default {
   get_monedas,
   getInfoPhotoById,
   getServicesGalleryByPhotographerId,
   getServicesByPhotographerId,
-  addServiceRequest
+  addServiceRequest,
+  getCountries,
+  getGenders,
+  getInfoUserById
 };
