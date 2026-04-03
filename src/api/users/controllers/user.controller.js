@@ -142,12 +142,35 @@ const getGenders = async (req, res) => {
 const getInfoUserById = async (req, res) => {
   try {
     console.log('Get info user by ID controller called', req.body);
-    const { id_usuario } = req.body;
-    const userInfo = await UserDAO.getInfoUserById(id_usuario);
+    const { id_usuario, id_rol } = req.body;
+    const userInfo = await UserDAO.getInfoUserById(id_usuario, id_rol);
     if (!userInfo) {
       throw new AppError('Información del usuario no encontrada', 404);
     }
-    return successResponse(res, userInfo, 'Información del usuario encontrada');  
+    return successResponse(res, userInfo, 'Información del usuario encontrada');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+
+const updateProfilePicture = async (req, res) => {
+  try {
+    console.log('Update profile photo controller called', req.body);
+    console.log('Received file:', req.file);
+    const { id_usuario } = req.body;
+    const file = req.files ? req.files[0] : null;
+    if (!file) {
+      throw new AppError('No se ha proporcionado una imagen para subir', 400);
+    }
+    const thumbnailBuffer = await sharp(file.buffer)
+      .resize(300, 300, { fit: 'cover' })
+      .jpeg({ quality: 70 })
+      .toBuffer();
+
+    const updatedUser = await UserDAO.updateProfilePicture(id_usuario, thumbnailBuffer);
+    return successResponse(res, updatedUser, 'Foto de perfil actualizada exitosamente');
   }
   catch (error) {
     return errorResponse(res, error);
@@ -158,6 +181,7 @@ export default {
   get_monedas,
   getInfoPhotoById,
   getServicesGalleryByPhotographerId,
+  updateProfilePicture,
   getServicesByPhotographerId,
   addServiceRequest,
   getCountries,

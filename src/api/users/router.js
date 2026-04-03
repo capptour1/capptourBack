@@ -20,4 +20,5 @@ router.post('/getCountries', userController.getCountries);
 router.post('/getGenders', userController.getGenders);
 
 router.post('/getInfoUserById', userController.getInfoUserById);
+router.post('/updateProfilePicture', userController.updateProfilePicture);
 export default router;

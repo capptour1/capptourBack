@@ -154,9 +154,29 @@ const getGenders = async () => {
     return result;
 };
 
-const getInfoUserById = async (userId) => {
-    const result = await sequelize.query(
-        `SELECT u.id as id_usuario, u.nombre_completo, u.email,
+const getInfoUserById = async (userId, id_rol) => {
+    let query = '';
+    if (id_rol === 3) {
+        query = `
+        SELECT u.id as id_usuario, u.nombre_completo, u.email,
+        u.rol_id as id_rol,
+        u.fecha_nacimiento, u.foto_perfil,
+        p.id_pais as pais_telefono,
+        p.codigo_telefono, ut.telefono, 
+        p2.id_pais as pais_usuario, p2.nombre as nombre_pais_usuario,
+        p2.iso_code,
+        g.id_genero, g.descripcion as genero
+        FROM auth.usuarios u
+        LEFT JOIN auth.usuario_telefono ut ON u.id = ut.id_usuario
+        LEFT JOIN public.paises p ON ut.id_pais = p.id_pais
+        LEFT JOIN public.paises p2 ON u.id_pais = p2.id_pais
+        LEFT JOIN public.generos g ON u.id_genero = g.id_genero
+        WHERE u.id = cast(:id_usuario AS int);
+        `;
+    } else if (id_rol === 5) {
+        query = `
+        SELECT u.id as id_usuario, u.nombre_completo, u.email,
+        u.rol_id as id_rol, l.longitud, l.latitud,
         u.fecha_nacimiento, u.foto_perfil,
         p.id_pais as pais_telefono,
         p.codigo_telefono, ut.telefono, 
@@ -170,7 +190,12 @@ const getInfoUserById = async (userId) => {
         LEFT JOIN public.paises p2 ON u.id_pais = p2.id_pais
         LEFT JOIN fotografo.fotografos f ON u.id = f.usuario_id
         LEFT JOIN public.generos g ON u.id_genero = g.id_genero
-        WHERE u.id = cast(:id_usuario AS int);`,
+        LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo
+        WHERE u.id = cast(:id_usuario AS int);
+        `;
+    }
+    const result = await sequelize.query(
+        query,
         {
             replacements: { id_usuario: userId },
             type: QueryTypes.SELECT
@@ -178,6 +203,19 @@ const getInfoUserById = async (userId) => {
     );
     return result[0];
 };
+
+
+const updateProfilePicture = async (userId, photoData) => {
+    const result = await sequelize.query(
+        `UPDATE auth.usuarios SET foto_perfil = :foto_perfil WHERE id = cast(:id_usuario AS int) RETURNING id, foto_perfil;`,
+        {
+            replacements: { id_usuario: userId, foto_perfil: photoData },
+            type: QueryTypes.UPDATE
+        }
+    );
+    return result[0];
+};
+
 
 export default {
     getTransaction,
@@ -191,5 +229,6 @@ export default {
     getBasicInfoServiceById,
     getCountries,
     getGenders,
-    getInfoUserById
+    getInfoUserById,
+    updateProfilePicture
 };
