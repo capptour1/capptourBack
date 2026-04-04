@@ -1,6 +1,7 @@
 import UserDAO from '../dao/user.dao.js';
 import AppError from '../../../utils/appError.js';
 import HelperResponse from '../../../utils/helperResponse.js';
+import sharp from 'sharp';
 
 const { successResponse, errorResponse } = HelperResponse;
 
@@ -157,8 +158,6 @@ const getInfoUserById = async (req, res) => {
 
 const updateProfilePicture = async (req, res) => {
   try {
-    console.log('Update profile photo controller called', req.body);
-    console.log('Received file:', req.file);
     const { id_usuario } = req.body;
     const file = req.files ? req.files[0] : null;
     if (!file) {
@@ -177,6 +176,56 @@ const updateProfilePicture = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  let t = null;
+  try {
+    t = await UserDAO.getTransaction();
+    console.log('Update info user by ID controller called');
+    const {
+      id_usuario,
+      id_rol,
+      nombre_completo,
+      descripcion,
+      herramientas,
+      email,
+      pais_telefono,
+      pais_usuario,
+      id_genero,
+      telefono,
+      fecha_nacimiento
+    } = req.body;
+
+    const info = {
+      nombre_completo,
+      pais_usuario,
+      id_genero,
+      fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+    };
+
+    const infoPhotographer = {
+      descripcion,
+      herramientas
+    };
+
+    const infoPhone = {
+      pais_telefono,
+      telefono
+    };
+
+    const updatedUser = await UserDAO.updateProfile(id_usuario, info, t);
+    const updateTelefono = await UserDAO.updateInfoPhoneByUserId(id_usuario, infoPhone, t);
+
+    if (id_rol === 5) {
+      const updatedPhotographer = await UserDAO.updateInfoPhotographerById(id_usuario, infoPhotographer, t);
+    }
+    await t.commit();
+    return successResponse(res, updatedUser, 'Información del usuario actualizada exitosamente');
+  } catch (error) {
+    if (t) await t.rollback();
+    return errorResponse(res, error);
+  }
+};
+
 export default {
   get_monedas,
   getInfoPhotoById,
@@ -186,5 +235,6 @@ export default {
   addServiceRequest,
   getCountries,
   getGenders,
-  getInfoUserById
+  getInfoUserById,
+  updateProfile
 };

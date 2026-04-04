@@ -25,10 +25,10 @@ const get_monedas = async () => {
 const getInfoPhotoById = async (photographerId) => {
     const result = await sequelize.query(
         `SELECT f.id AS id_fotografo, 
-            u.nombre_completo as nombre,
-            NULL AS biografia, NULL AS herramientas,
+            u.nombre_completo as nombre, u.foto_perfil as thumbnail, u.rol_id as id_rol, u.fecha_nacimiento,
+            f.descripcion AS biografia, f.herramientas,
             5 AS rating, 120 AS reservas, TRUE AS favorito,
-            '3162388201' AS celular,
+            CONCAT(p.codigo_telefono, ' ', ut.telefono) AS celular,
             l.latitud, l.longitud,
             te.descripcion AS experiencia,
             tr.descripcion AS rol
@@ -37,6 +37,8 @@ const getInfoPhotoById = async (photographerId) => {
             INNER JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
             INNER JOIN fotografo.tipo_experiencia te ON f.id_experiencia = te.id_experiencia 
             INNER JOIN fotografo.tipo_rol tr ON f.id_rol = tr.id_rol 
+            LEFT JOIN auth.usuario_telefono ut ON u.id = ut.id_usuario
+            LEFT JOIN public.paises p ON ut.id_pais = p.id_pais
             WHERE f.id = cast(:id_fotografo AS int);`,
         {
             replacements: { id_fotografo: photographerId },
@@ -159,6 +161,7 @@ const getInfoUserById = async (userId, id_rol) => {
     if (id_rol === 3) {
         query = `
         SELECT u.id as id_usuario, u.nombre_completo, u.email,
+        u.foto_perfil as thumbnail,
         u.rol_id as id_rol,
         u.fecha_nacimiento, u.foto_perfil,
         p.id_pais as pais_telefono,
@@ -176,6 +179,8 @@ const getInfoUserById = async (userId, id_rol) => {
     } else if (id_rol === 5) {
         query = `
         SELECT u.id as id_usuario, u.nombre_completo, u.email,
+        u.foto_perfil as thumbnail,
+        f.id AS id_fotografo,
         u.rol_id as id_rol, l.longitud, l.latitud,
         u.fecha_nacimiento, u.foto_perfil,
         p.id_pais as pais_telefono,
@@ -207,14 +212,73 @@ const getInfoUserById = async (userId, id_rol) => {
 
 const updateProfilePicture = async (userId, photoData) => {
     const result = await sequelize.query(
-        `UPDATE auth.usuarios SET foto_perfil = :foto_perfil WHERE id = cast(:id_usuario AS int) RETURNING id, foto_perfil;`,
+        `UPDATE auth.usuarios SET foto_perfil = :foto_perfil WHERE id = cast(:id_usuario AS int) RETURNING id, foto_perfil AS thumbnail;`,
         {
             replacements: { id_usuario: userId, foto_perfil: photoData },
             type: QueryTypes.UPDATE
         }
     );
-    return result[0];
+    return result[0][0];
 };
+
+
+const updateProfile = async (userId, info, t) => {
+    const result = await sequelize.query(
+        `UPDATE auth.usuarios SET nombre_completo = :nombre_completo, id_pais = cast(:pais_usuario AS int), id_genero = cast(:id_genero AS int), fecha_nacimiento = cast(:fecha_nacimiento AS date) 
+        WHERE id = cast(:id_usuario AS int) RETURNING id;`,
+        {
+            replacements: { ...info, id_usuario: userId },
+            type: QueryTypes.UPDATE,
+            transaction: t
+        }
+    );
+    return result[0][0];
+};
+
+const updateInfoPhoneByUserId = async (userId, infoPhone, t) => {
+    console.log('DAO - updateInfoPhoneByUserId called with:', { userId, infoPhone });
+    // crear si no existe, actualizar si existe
+    const existingPhone = await sequelize.query(
+        `SELECT id_usuario FROM auth.usuario_telefono WHERE id_usuario = cast(:id_usuario AS int);`,
+        {
+            replacements: { id_usuario: userId },
+            type: QueryTypes.SELECT,
+            transaction: t
+        }
+    );
+    if (existingPhone.length > 0) {
+        // actualizar
+        const result = await sequelize.query(
+            `UPDATE auth.usuario_telefono SET id_pais = cast(:pais_telefono AS int), telefono = :telefono WHERE id_usuario = cast(:id_usuario AS int) RETURNING id_usuario;`,
+            {
+                replacements: { ...infoPhone, id_usuario: userId }, 
+                type: QueryTypes.UPDATE
+            }
+        );
+        return result[0][0];
+    } else {
+        // crear
+        const result = await sequelize.query(
+            `INSERT INTO auth.usuario_telefono (id_usuario, id_pais, telefono) VALUES (cast(:id_usuario AS int), cast(:pais_telefono AS int), :telefono) RETURNING id_usuario;`,
+            {
+                replacements: { ...infoPhone, id_usuario: userId },
+                type: QueryTypes.INSERT
+            }
+        );
+        return result[0][0];
+    }
+};
+const updateInfoPhotographerById = async (userId, infoPhotographer, t) => {
+    const result = await sequelize.query(
+        `UPDATE fotografo.fotografos SET descripcion = :descripcion, herramientas = :herramientas WHERE usuario_id = cast(:id_usuario AS int) RETURNING id;`,
+        {
+            replacements: { ...infoPhotographer, id_usuario: userId },
+            type: QueryTypes.UPDATE,
+            transaction: t
+        }
+    );
+    return result[0][0];
+}
 
 
 export default {
@@ -230,5 +294,8 @@ export default {
     getCountries,
     getGenders,
     getInfoUserById,
-    updateProfilePicture
+    updateProfilePicture,
+    updateProfile,
+    updateInfoPhoneByUserId,
+    updateInfoPhotographerById
 };

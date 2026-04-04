@@ -7,6 +7,12 @@ import explorerController from './controllers/explorer.controller.js';
 const router = express.Router();
 
 
+import multer from 'multer';
+
+const upload = multer({
+    storage: multer.memoryStorage()
+});
+
 // NEW ROUTES
 router.post('/search-photographers', mapController.searchPhotographers);
 router.post('/get-monedas', userController.get_monedas);
@@ -20,5 +26,6 @@ router.post('/getCountries', userController.getCountries);
 router.post('/getGenders', userController.getGenders);
 
 router.post('/getInfoUserById', userController.getInfoUserById);
-router.post('/updateProfilePicture', userController.updateProfilePicture);
+router.post('/updateProfilePicture', upload.any(), userController.updateProfilePicture);
+router.post('/updateProfile', userController.updateProfile);
 export default router;
