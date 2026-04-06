@@ -5,23 +5,29 @@ import HelperResponse from '../../../utils/helperResponse.js';
 const { successResponse, errorResponse } = HelperResponse;
 
 
-const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
+const getBookingsByUserId = async (req, res) => {
+    try {
+        const { id_usuario } = req.body;
+        console.log('Get bookings by user ID controller called', req.body);
+        let bookings = await BookingDao.getBookingsByUserId(id_usuario);
+        for (let booking of bookings) {
+            const deliveryInfo = await BookingDao.getDeliveryInfoByBookingId(booking.id_reserva);
+            booking.deliveryInfo = deliveryInfo;
+        }
+        for (let booking of bookings) {
+            booking.images = await BookingDao.getImagesDeliveryById(booking.deliveryInfo.id_entrega);
+        }
 
-    const months = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-
-    return `${months[date.getUTCMonth()]} ${date.getUTCDate()}/${date.getUTCFullYear()}`;
+        return successResponse(res, bookings, 'Reservas obtenidas correctamente');
+    }
+    catch (error) {
+        return errorResponse(res, error);
+    }
 };
 
 
-const formatTime = (timeStr) => {
-    const [h, m] = timeStr.split(':');
-    return `${h}:${m}`;
-};
 
 
 export default {
+    getBookingsByUserId
 };
