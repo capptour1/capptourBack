@@ -273,6 +273,59 @@ const getInfoGallery = async (photographerId) => {
 }
 
 
+const addService = async (service, transaction) => {
+    try {
+        const result = await sequelize.query(
+            `INSERT INTO fotografo.servicios (id_fotografo, nombre, descripcion, precio_hora,
+        id_moneda, editadas, no_editadas)
+        VALUES (:photographer_id, :name, :description, :price_hour,
+        :currency_id, :edited_photos, :unedited_photos)
+        RETURNING *;`,
+            {
+                replacements: {
+                    photographer_id: service.id_fotografo,
+                    name: service.nombre,
+                    description: service.descripcion,
+                    price_hour: service.precio_hora,
+                    currency_id: service.id_moneda,
+                    edited_photos: service.editadas,
+                    unedited_photos: service.no_editadas
+                },
+                type: QueryTypes.INSERT,
+                transaction
+            }
+        );
+        return result[0][0];
+    } catch (error) {
+        console.error('Error registering services:', error);
+        throw new Error('Error al registrar los servicios');
+    }
+};
+
+
+const addGalleryImages = async (imagesData, transaction) => {
+  try {
+    for (let i = 0; i < imagesData.length; i++) {
+      const item = imagesData[i];
+      await sequelize.query(
+        `INSERT INTO fotografo.imagen_servicio (id_servicio, imagen, thumbnail)
+        VALUES (:id_servicio, :imagen, :thumbnail)`,
+        {
+          replacements: {
+            id_servicio: item.id_servicio,
+            imagen: item.imagen.buffer,
+            thumbnail: item.thumbnail
+          },
+          type: QueryTypes.INSERT,
+          transaction
+        }
+      );
+    }
+  } catch (error) {
+    console.error('Error registering gallery images:', error);
+    throw new Error('Error al registrar las imágenes de la galería');
+  }
+};
 
 
 export default {
@@ -289,7 +342,9 @@ export default {
     uploadImageDelivery,
     deleteImageDelivery,
     getInfoServices,
-    getInfoGallery
+    getInfoGallery,
+    addService,
+    addGalleryImages
 
 
 };

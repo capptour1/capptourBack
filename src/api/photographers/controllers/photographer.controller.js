@@ -3,8 +3,12 @@ import PhotographerDAO from '../dao/photographer.dao.js';
 import AppError from '../../../utils/appError.js';
 import HelperResponse from '../../../utils/helperResponse.js';
 import sharp from 'sharp';
+import media from '../../../utils/media.js';
+import photographerDao from '../dao/photographer.dao.js';
 
 const { successResponse, errorResponse } = HelperResponse;
+
+const { createThumbnail } = media;
 
 
 const getInfoPhotoDbById = async (req, res) => {
@@ -214,6 +218,60 @@ const getServices = async (req, res) => {
   }
 };
 
+const addService = async (req, res) => {
+  let t;
+  try {
+    t = await PhotographerDAO.start_transaction();
+    let { servicio } = req.body;
+    servicio = JSON.parse(servicio);
+    const serviceFiles = req.files.filter(file => file.fieldname.startsWith(`service_`));
+
+    const userInfo = await PhotographerDAO.getInfoPhotoDbById(servicio.id_usuario);
+    if (!userInfo) {
+      throw new AppError('Fotógrafo no encontrado', 404);
+    }
+
+    const dataService = {
+        nombre: servicio.name,
+        descripcion: servicio.description,
+        precio_hora: servicio.price_hour,
+        id_moneda: servicio.currency_id,
+        editadas: servicio.edited,
+        no_editadas: servicio.unedited,
+        id_fotografo: userInfo.id_fotografo
+      };
+
+
+    const insertedService = await photographerDao.addService(dataService, t);
+
+    let imagesData = [];
+
+    for (let j = 0; j < serviceFiles.length; j++) {
+      const file = serviceFiles[j];
+      const thumbnailBuffer = await createThumbnail(file);
+
+      imagesData.push({
+        id_servicio: insertedService.id_servicio,
+        imagen: file,
+        thumbnail: thumbnailBuffer
+      });
+    }
+
+    if (imagesData.length > 0) {
+      await photographerDao.addGalleryImages(imagesData, t);
+    }
+
+    await t.commit();
+    return successResponse(res, insertedService, 'Servicio agregado correctamente');
+  }
+  catch (error) {
+    if (t) {
+      await t.rollback();
+    }
+    return errorResponse(res, error);
+  }
+}
+
 export default {
   getInfoPhotoDbById,
   changeStatusSession,
@@ -223,5 +281,6 @@ export default {
   uploadImagesDelivery,
   uploadLinksDelivery,
   deleteImageDelivery,
-  getServices
+  getServices,
+  addService
 };

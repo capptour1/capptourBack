@@ -3,7 +3,7 @@ import AuthDAO from '../dao/auth.dao.js';
 import AppError from '../../../utils/appError.js';
 import HelperResponse from '../../../utils/helperResponse.js';
 import jwt from 'jsonwebtoken';
-import sharp from 'sharp';
+
 import media from '../../../utils/media.js';
 const SECRET_KEY = 'secret_key'; // ← CLAVE UNIFICADA
 
@@ -90,10 +90,6 @@ const new_register_photographer = async (req, res) => {
     session = JSON.parse(session);
     photographer = JSON.parse(photographer);
     services = JSON.parse(services);
-
-    console.log('Session data:', session);
-    console.log('Photographer data:', photographer);
-    console.log('Services data:', services);
 
     const emailExists = await AuthDAO.check_email_exists(session.email);
     if (emailExists) {
