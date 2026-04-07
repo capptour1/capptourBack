@@ -12,11 +12,13 @@ const getBookingsByUserId = async (req, res) => {
         let bookings = await BookingDao.getBookingsByUserId(id_usuario);
         for (let booking of bookings) {
             const deliveryInfo = await BookingDao.getDeliveryInfoByBookingId(booking.id_reserva);
-            booking.deliveryInfo = deliveryInfo;
+            booking.entrega = deliveryInfo;
         }
         for (let booking of bookings) {
-            booking.images = await BookingDao.getImagesDeliveryById(booking.deliveryInfo.id_entrega);
+            if (!booking.entrega) continue; // Si no hay información de entrega, saltar a la siguiente reserva
+            booking.imagenes_entrega = await BookingDao.getImagesDeliveryById(booking.entrega.id_entrega);
         }
+        console.log('Bookings with delivery info and images:', bookings);
 
         return successResponse(res, bookings, 'Reservas obtenidas correctamente');
     }

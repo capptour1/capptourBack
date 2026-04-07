@@ -13,7 +13,7 @@ const getBookingsByUserId = async (id_usuario) => {
         SELECT
         r.id_reserva, r.fecha, r.hora_inicio, r.hora_fin, r.estado, r.fec_creacion,
         r.latitud, r.longitud,
-        u.id as id_usuario, u.nombre_completo as nombre_fotografo, 
+        f.id as id_fotografo, u.nombre_completo as nombre_fotografo, 
         u.foto_perfil as thumbnail_fotografo, 
         s.id_servicio, s.nombre as nombre_servicio, s.descripcion as descripcion_servicio,
         s.precio_hora, s.editadas, s.no_editadas,
@@ -52,19 +52,15 @@ const getDeliveryInfoByBookingId = async (id_reserva) => {
             type: QueryTypes.SELECT,
         }
     );
-    if (deliveryInfo.length === 0) {
-        throw new AppError('No se encontró información de entrega para esta reserva', 404);
-    }
     return deliveryInfo[0];
 }
 
 const getImagesDeliveryById = async (id_entrega) => {
     const images = await sequelize.query(
         `
-        SELECT id_imagen, imagen, thumbnail, id_entrega
+        SELECT id_imagen, thumbnail, id_entrega
         FROM reserva.imagenes_entrega i
-        INNER JOIN reserva.entrega e ON i.id_entrega = e.id_entrega
-        WHERE e.id_entrega = cast(:id_entrega AS int);
+        WHERE i.id_entrega = cast(:id_entrega AS int);
          `,
         {
             replacements: { id_entrega },

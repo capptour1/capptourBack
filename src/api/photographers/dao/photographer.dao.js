@@ -15,7 +15,7 @@ const start_transaction = () => {
 const getInfoPhotoDbById = async (id_usuario) => {
     const result = await sequelize.query(
         `SELECT f.id AS id_fotografo, 
-            null as thumbnail,
+            u.foto_perfil as thumbnail,
             u.nombre_completo as nombre,
             l.latitud, l.longitud,
             f.is_active as disponibilidad
@@ -38,7 +38,7 @@ const getInfoSessionPhotoDbById = async (id_usuario) => {
             r.id_reserva, r.fecha, r.hora_inicio, r.hora_fin, r.estado, r.fec_creacion,
             r.latitud, r.longitud,
             c.id as id_cliente, c.nombre_completo as nombre_cliente,
-            null as thumbnail_cliente, 
+            c.foto_perfil as thumbnail_cliente, 
             s.id_servicio, s.nombre as nombre_servicio, s.descripcion as descripcion_servicio,
             s.precio_hora, s.editadas, s.no_editadas,
             tm.codigo

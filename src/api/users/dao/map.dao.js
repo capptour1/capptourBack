@@ -26,6 +26,7 @@ const searchPhotographers = async (lat, lng) => {
         SELECT 
             f.id,
             u.nombre_completo AS nombre,
+            u.foto_perfil as thumbnail,
             5 AS rating,
             12 AS solicitudes,
             l.latitud,

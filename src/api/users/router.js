@@ -28,4 +28,7 @@ router.post('/getGenders', userController.getGenders);
 router.post('/getInfoUserById', userController.getInfoUserById);
 router.post('/updateProfilePicture', upload.any(), userController.updateProfilePicture);
 router.post('/updateProfile', userController.updateProfile);
+
+
+router.post('/getBookingsByUserId', bookingController.getBookingsByUserId);
 export default router;
