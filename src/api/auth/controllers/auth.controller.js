@@ -19,7 +19,7 @@ const login = async (req, res) => {
 
     const user = await AuthDAO.find_user_by_email(email);
     if (!user) {
-      throw new AppError('Credenciales inválidas', 401);
+      throw new AppError('No se encontró un usuario con ese email', 401);
     }
 
     const isPasswordValid = await AuthDAO.verify_password(
@@ -32,13 +32,22 @@ const login = async (req, res) => {
       throw new AppError('Credenciales inválidas', 401);
     }
 
+    const photographerInfo = await AuthDAO.find_photographer_by_user_id(user.id);
+
     const token = jwt.sign(
       { userId: user.id, role: user.rol_id },
       SECRET_KEY, // ← MISMA CLAVE QUE EL MIDDLEWARE
       { expiresIn: '2h' }
     );
 
-    return successResponse(res, { token: token, userId: user.id, role: user.rol_id }, 'Login exitoso');
+    const data = {
+      token: token,
+      userId: user.id,
+      role: user.rol_id,
+      photographerId : photographerInfo ? photographerInfo.id : null
+    };
+
+    return successResponse(res, data, 'Login exitoso');
 
 
   } catch (error) {

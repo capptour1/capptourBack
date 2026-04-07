@@ -38,6 +38,7 @@ app.use('/api', routes);
 
 // error 404 handler
 app.use((req, res, next) => {
+  console.warn(`⚠️  Ruta no encontrada: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ message: 'Endpoint no encontrado' });
 });
 

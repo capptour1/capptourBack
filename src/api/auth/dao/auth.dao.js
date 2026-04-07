@@ -69,6 +69,23 @@ const find_user_by_email = async (email) => {
   }
 };
 
+const find_photographer_by_user_id = async (user_id) => {
+  try {
+    const result = await sequelize.query(
+      `SELECT * FROM fotografo.fotografos WHERE usuario_id = cast(:user_id AS int);`,
+      {
+        replacements: { user_id },
+        type: QueryTypes.SELECT,
+      }
+    );
+    return result.length > 0 ? result[0] : null;
+  }
+  catch (error) {
+    console.error('Error finding photographer by user ID:', error);
+    throw new Error('Error al buscar el fotógrafo por ID de usuario');
+  }
+};
+
 const verify_password = async (plainPassword, storedPassword, userId) => {
   try {
 
@@ -214,6 +231,7 @@ export default {
   register_client,
   check_email_exists,
   find_user_by_email,
+  find_photographer_by_user_id,
   verify_password,
 
   register_user_photographer,

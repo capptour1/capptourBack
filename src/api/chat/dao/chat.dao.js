@@ -36,8 +36,12 @@ const getConversationById = async (conversationId) => {
       c.tipo,
       c.id_cliente,
       u.nombre_completo AS nombre_cliente,
+      u.foto_perfil AS foto_cliente,
+      c.id_fotografo,
+      f.nombre_completo AS nombre_fotografo,
       c.id_fotografo,
       u2.nombre_completo AS nombre_fotografo,
+      u2.foto_perfil AS foto_fotografo,
       c.id_reserva,
       c.fec_creacion,
       c.fec_update
@@ -187,6 +191,7 @@ const createSessionConversation = async (
 const getInfoConversationById = async (conversationId, transaction) => {
   const conversation = await sequelize.query(
     `SELECT c.id_chat AS id_conversacion, c.tipo, u.nombre_completo AS nombre_cliente,
+
       u2.nombre_completo AS nombre_fotografo, c.id_cliente, c.id_fotografo, c.id_reserva,
       c.fec_creacion, c.fec_update
     FROM chat.conversacion c
@@ -205,6 +210,53 @@ const getInfoConversationById = async (conversationId, transaction) => {
   return conversation[0];
 };
 
+const getChatListClient = async (clientId) => {
+  const chatList = await sequelize.query(
+    `
+    SELECT c.id_chat AS id_conversacion, c.tipo, u.nombre_completo AS nombre_cliente,
+      u.foto_perfil AS foto_cliente,
+      u2.nombre_completo AS nombre_fotografo, u2.foto_perfil AS foto_fotografo,
+      c.id_cliente, c.id_fotografo, c.id_reserva,
+      c.fec_creacion, c.fec_update
+    FROM chat.conversacion c
+    JOIN auth.usuarios u ON c.id_cliente = u.id
+    JOIN fotografo.fotografos f ON c.id_fotografo = f.id
+    JOIN auth.usuarios u2 ON f.usuario_id = u2.id
+    --WHERE c.id_cliente = :clientId
+    `,
+    {
+      replacements: { clientId },
+      type: QueryTypes.SELECT
+    }
+  );
+
+  return chatList;
+};
+
+const getChatListPhotographer = async (photographerId) => {
+  const chatList = await sequelize.query(
+    `
+    SELECT c.id_chat AS id_conversacion, c.tipo, u.nombre_completo AS nombre_cliente,
+      u.foto_perfil AS foto_cliente,
+      u2.nombre_completo AS nombre_fotografo, u2.foto_perfil AS foto_fotografo,
+      c.id_cliente, c.id_fotografo, c.id_reserva,
+      c.fec_creacion, c.fec_update
+    FROM chat.conversacion c
+    JOIN auth.usuarios u ON c.id_cliente = u.id
+    JOIN fotografo.fotografos f ON c.id_fotografo = f.id
+    JOIN auth.usuarios u2 ON f.usuario_id = u2.id
+    WHERE c.id_fotografo = :photographerId
+    `,
+    {
+      replacements: { photographerId },
+      type: QueryTypes.SELECT
+    }
+  );
+
+  return chatList;
+};
+
+
 
 
 
@@ -217,5 +269,7 @@ export default {
   createDirectConversation,
   findSessionConversation,
   createSessionConversation,
-  getInfoConversationById
+  getInfoConversationById,
+  getChatListClient,
+  getChatListPhotographer
 };

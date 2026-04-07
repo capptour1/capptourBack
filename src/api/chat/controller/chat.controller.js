@@ -90,11 +90,44 @@ const getOrCreateConversation = async (req, res) => {
   }
 };
 
+const getChatListClient = async (req, res) => {
+  try {
+    const { id_usuario } = req.body;
+    console.log('Getting chat list for client ID:', id_usuario);
+    let chatList = await chatDao.getChatListClient(id_usuario);
+
+    for (const chat of chatList) {
+      const messages = await chatDao.getMessagesByConversation(chat.id_conversacion);
+      chat.ultimo_mensaje = messages.length > 0 ? messages[messages.length - 1] : null;
+    }
+
+    return successResponse(res, chatList);
+  } catch (error) {
+    return errorResponse(res, 'Error retrieving chat list', error);
+  }
+};
+
+const getChatListPhotographer = async (req, res) => {
+  try {
+    const { id_fotografo } = req.body;
+    let chatList = await chatDao.getChatListPhotographer(id_fotografo);
+    for (const chat of chatList) {
+      const messages = await chatDao.getMessagesByConversation(chat.id_conversacion);
+      chat.ultimo_mensaje = messages.length > 0 ? messages[messages.length - 1] : null;
+    }
+
+    return successResponse(res, chatList);
+  } catch (error) {
+    return errorResponse(res, 'Error retrieving chat list', error);
+  }
+};
 
 export default {
   getConversationById,
   getMessagesById,
   sendMessage,
-  getOrCreateConversation
+  getOrCreateConversation,
+  getChatListClient,
+  getChatListPhotographer
 };
 

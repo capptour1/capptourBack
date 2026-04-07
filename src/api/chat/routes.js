@@ -3,9 +3,13 @@ import express from 'express';
 import chatController from './controller/chat.controller.js';
 const router = express.Router();
 
-router.post('/get-conversation', chatController.getConversationById);
-router.post('/get-messages', chatController.getMessagesById);
-router.post('/send-message', chatController.sendMessage);
+router.post('/getConversation', chatController.getConversationById);
+router.post('/getMessages', chatController.getMessagesById);
+router.post('/sendMessage', chatController.sendMessage);
 router.post('/conversation', chatController.getOrCreateConversation);
+
+router.post('/getChatListClient', chatController.getChatListClient);
+router.post('/getChatListPhotographer', chatController.getChatListPhotographer);
+
 
 export default router;
