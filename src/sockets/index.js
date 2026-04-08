@@ -6,7 +6,8 @@ export default function initSockets(server) {
   const io = new Server(server, {
     cors: {
       origin: '*', // ⚠️ luego limita
-      methods: ['GET', 'POST']
+      methods: ['GET', 'POST'],
+      transports: ['websocket']
     }
   });
 
@@ -14,8 +15,7 @@ export default function initSockets(server) {
 
   // Middleware global (auth futura)
   io.use((socket, next) => {
-    // validar JWT aquí
-    // socket.user = decodedUser;
+    console.log("🔐 Auth recibido:", socket.handshake.auth);
     next();
   });
   /*

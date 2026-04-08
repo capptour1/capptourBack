@@ -26,7 +26,6 @@ const searchPhotographers = async (req, res) => {
             lng,
         );
 
-        console.log('Photographers found:', photographers);
 
         
         return successResponse(

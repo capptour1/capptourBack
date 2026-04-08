@@ -10,8 +10,8 @@ const { successResponse, errorResponse } = HelperResponse;
 
 const getConversationById = async (req, res) => {
   try {
-    const { conversation_id } = req.body;
-    const conversation = await chatDao.getConversationById(conversation_id);
+    const { id_conversacion } = req.body;
+    const conversation = await chatDao.getConversationById(id_conversacion);
     return successResponse(res, conversation);
   } catch (error) {
     throw new AppError('Error retrieving chat data', 500);
@@ -20,8 +20,9 @@ const getConversationById = async (req, res) => {
 
 const getMessagesById = async (req, res) => {
   try {
-    const { conversation_id } = req.body;
-    const messages = await chatDao.getMessagesByConversation(conversation_id);
+    const { id_conversacion } = req.body;
+    console.log('Getting messages for conversation ID:', id_conversacion);
+    const messages = await chatDao.getMessagesByConversation(id_conversacion);
     return successResponse(res, messages);
   } catch (error) {
     return errorResponse(res, 'Error retrieving messages', error);
@@ -80,7 +81,6 @@ const getOrCreateConversation = async (req, res) => {
       }
     }
     const result = await chatDao.getInfoConversationById(conversation.id_chat, t);
-    console.log('Conversation info:', result);
     await t.commit();
     return successResponse(res, result);
 

@@ -38,7 +38,7 @@ const getConversationById = async (conversationId) => {
       u.nombre_completo AS nombre_cliente,
       u.foto_perfil AS foto_cliente,
       c.id_fotografo,
-      f.nombre_completo AS nombre_fotografo,
+      u2.nombre_completo AS nombre_fotografo,
       c.id_fotografo,
       u2.nombre_completo AS nombre_fotografo,
       u2.foto_perfil AS foto_fotografo,
@@ -222,7 +222,7 @@ const getChatListClient = async (clientId) => {
     JOIN auth.usuarios u ON c.id_cliente = u.id
     JOIN fotografo.fotografos f ON c.id_fotografo = f.id
     JOIN auth.usuarios u2 ON f.usuario_id = u2.id
-    --WHERE c.id_cliente = :clientId
+    WHERE c.id_cliente = :clientId
     `,
     {
       replacements: { clientId },
