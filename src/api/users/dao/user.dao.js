@@ -119,7 +119,7 @@ const getBasicInfoPhotographerById = async (photographerId) => {
             type: QueryTypes.SELECT
         }
     );
-    console.log('DAO - Basic info photographer result:', result);
+    
     return result[0];
 }
 
@@ -131,7 +131,7 @@ const getBasicInfoServiceById = async (serviceId) => {
             type: QueryTypes.SELECT
         }
     );
-    console.log('DAO - Basic info service result:', result);
+    
     return result[0];
 }
 

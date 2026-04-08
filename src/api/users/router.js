@@ -31,4 +31,7 @@ router.post('/updateProfile', userController.updateProfile);
 
 
 router.post('/getBookingsByUserId', bookingController.getBookingsByUserId);
+
+router.post('/getExplorerImages', explorerController.getExplorerImages);
+router.post('/getFullImage', explorerController.getFullImage);
 export default router;
