@@ -13,7 +13,7 @@ router.post('/login', AuthController.login);
 // NUEVAS RUTAS
 router.post('/registerClient', AuthController.new_register_client);
 router.post('/registerPhotographer', upload.any(), AuthController.new_register_photographer);
-
+router.post('/changePassword', AuthController.changePassword);
 
 
 

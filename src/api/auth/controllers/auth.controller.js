@@ -159,8 +159,38 @@ const new_register_photographer = async (req, res) => {
 }
 
 
+const changePassword = async (req, res) => {
+  try {
+    
+    const { user_id, current_password, new_password } = req.body;
+
+    const user = await AuthDAO.find_user_by_id(user_id);
+    if (!user) {
+      throw new AppError('Usuario no encontrado', 404);
+    }
+
+    const isCurrentPasswordValid = await AuthDAO.verify_password(
+      current_password,
+      user.password,
+      user.id
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new AppError('Contraseña actual incorrecta', 401);
+    }
+
+    await AuthDAO.update_password(user_id, new_password);
+
+    return successResponse(res, {}, 'Contraseña actualizada exitosamente');
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
 export default {
   login,
   new_register_client,
   new_register_photographer,
+  changePassword
 };

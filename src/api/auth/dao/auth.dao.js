@@ -224,6 +224,31 @@ const register_gallery_images_v2 = async (imagesData, transaction) => {
   }
 };
 
+const find_user_by_id = async (userId) => {
+
+  const result = await sequelize.query(
+    `SELECT * FROM auth.usuarios WHERE id = :userId`,
+    {
+      replacements: { userId },
+      type: QueryTypes.SELECT
+    }
+  );
+  return result[0];
+
+};
+
+const update_password = async (userId, password) => {
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  await sequelize.query(
+    `UPDATE auth.usuarios SET password = :password WHERE id = :userId`,
+    {
+      replacements: { password: hashedPassword, userId },
+      type: QueryTypes.UPDATE
+    }
+  );
+};
 
 
 export default {
@@ -233,6 +258,8 @@ export default {
   find_user_by_email,
   find_photographer_by_user_id,
   verify_password,
+  find_user_by_id,
+  update_password,
 
   register_user_photographer,
 
