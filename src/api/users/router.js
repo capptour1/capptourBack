@@ -35,4 +35,6 @@ router.post('/getBookingsByUserId', bookingController.getBookingsByUserId);
 router.post('/getExplorerImages', explorerController.getExplorerImages);
 router.post('/getFullImage', explorerController.getFullImage);
 router.post('/submitServiceRating', userController.submitServiceRating);
+router.post('/getFullImagesByBookingId', userController.getFullImagesByBookingId);
+router.get('/images/:id', userController.getImageById);
 export default router;

@@ -71,10 +71,27 @@ const getImagesDeliveryById = async (id_entrega) => {
 }
 
 
+const getRatingByBookingId = async (id_reserva) => {
+    const rating = await sequelize.query(
+        `SELECT id_calificacion, id_reserva, puntualidad, calidad, profesionalismo, relacion, recomendacion, comentario
+         FROM fotografo.foto_calificacion
+         WHERE id_reserva = cast(:id_reserva AS int);`,
+        {
+            replacements: { id_reserva },
+            type: QueryTypes.SELECT,
+        }
+    );
+    return rating[0];
+}
+
+     
+
+
 
 export default {
     createTransaction,
     getBookingsByUserId,
     getDeliveryInfoByBookingId,
-    getImagesDeliveryById
+    getImagesDeliveryById,
+    getRatingByBookingId,
 };

@@ -2,6 +2,7 @@ import UserDAO from '../dao/user.dao.js';
 import AppError from '../../../utils/appError.js';
 import HelperResponse from '../../../utils/helperResponse.js';
 import sharp from 'sharp';
+import userDao from '../dao/user.dao.js';
 
 const { successResponse, errorResponse } = HelperResponse;
 
@@ -227,38 +228,77 @@ const updateProfile = async (req, res) => {
 };
 
 const submitServiceRating = async (req, res) => {
-    try {
-        const { 
-            id_reserva,
-            puntualidad,
-            calidad_fotos,
-            profesionalismo,
-            relacion_calidad_precio,
-            recomendacion,
-            comentario
-        } = req.body;
+  try {
+    const {
+      id_reserva,
+      puntualidad,
+      calidad_fotos,
+      profesionalismo,
+      relacion_calidad_precio,
+      recomendacion,
+      comentario
+    } = req.body;
 
-        if (!id_reserva) {
-            throw new AppError('id_reserva is required', 400);
-        }
-
-        const ratingData = {
-            id_reserva,
-            puntualidad,
-            calidad_fotos,
-            profesionalismo,
-            relacion_calidad_precio,
-            recomendacion,
-            comentario
-        };
-
-        await explorerDao.submitServiceRating(ratingData);
-
-        return successResponse(res, {}, 'Service rating submitted successfully');
+    if (!id_reserva) {
+      throw new AppError('id_reserva is required', 400);
     }
-    catch (error) {
-        return errorResponse(res, error.message, 500);
+
+    const ratingData = {
+      id_reserva,
+      puntualidad,
+      calidad_fotos,
+      profesionalismo,
+      relacion_calidad_precio,
+      recomendacion,
+      comentario
+    };
+
+    const resp = await userDao.submitServiceRating(ratingData);
+    console.log('Service rating submitted with data:', ratingData, 'Response:', resp);
+    if (!resp) {
+      throw new AppError('Failed to submit service rating', 500);
     }
+
+    return successResponse(res, resp, 'Service rating submitted successfully');
+  }
+  catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+const getFullImagesByBookingId = async (req, res) => {
+  console.log('Get full images by booking ID controller called', req.body);
+  try {
+    const { id_reserva } = req.body;
+    if (!id_reserva) {
+      throw new AppError('id_reserva is required', 400);
+    }
+
+    const images = await userDao.getFullImagesByBookingId(id_reserva);
+    return successResponse(res, images, 'Full images obtained successfully');
+  }
+  catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+const getImageById = async (req, res) => {
+  console.log('Get image by ID controller called with ID:', req.params.id);
+  try {
+    const { id } = req.params;
+
+    const imageBuffer = await userDao.getImageById(id);
+
+    if (!imageBuffer) {
+      return res.status(404).send('Image not found');
+    }
+
+    res.set('Content-Type', 'image/jpeg'); 
+    res.send(imageBuffer);
+
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
 };
 
 export default {
@@ -272,5 +312,8 @@ export default {
   getGenders,
   getInfoUserById,
   updateProfile,
-  submitServiceRating
+  submitServiceRating,
+  getFullImagesByBookingId,
+  getImageById,
+  
 };

@@ -268,6 +268,7 @@ const updateInfoPhoneByUserId = async (userId, infoPhone, t) => {
         return result[0][0];
     }
 };
+
 const updateInfoPhotographerById = async (userId, infoPhotographer, t) => {
     const result = await sequelize.query(
         `UPDATE fotografo.fotografos SET descripcion = :descripcion, herramientas = :herramientas WHERE usuario_id = cast(:id_usuario AS int) RETURNING id;`,
@@ -283,9 +284,9 @@ const updateInfoPhotographerById = async (userId, infoPhotographer, t) => {
 
 const submitServiceRating = async (ratingData) => {
     const result = await sequelize.query(
-        `INSERT INTO reserva.calificacion_servicio (id_reserva, puntualidad, calidad, profesionalismo, relacion, recomendacion, comentario)
-         VALUES (cast(:id_reserva AS int), cast(:puntualidad AS int), cast(:calidad_fotos AS int), cast(:profesionalismo AS int), cast(:relacion_calidad_precio AS int), cast(:recomendacion AS boolean), :comentario)
-         RETURNING id_calificacion;`,
+        `INSERT INTO fotografo.foto_calificacion (id_reserva, puntualidad, calidad, profesionalismo, relacion, recomendacion, comentario)
+         VALUES (cast(:id_reserva AS int), cast(:puntualidad AS int), cast(:calidad_fotos AS int), cast(:profesionalismo AS int), cast(:relacion_calidad_precio AS int), cast(:recomendacion AS int), :comentario)
+         RETURNING *;`,
         {
             replacements: { ...ratingData },
             type: QueryTypes.INSERT
@@ -295,21 +296,52 @@ const submitServiceRating = async (ratingData) => {
 }
 
 
+const getFullImagesByBookingId = async (id_reserva) => {
+    const images = await sequelize.query(
+        ` SELECT i.id_imagen
+        FROM reserva.imagenes_entrega i
+        INNER JOIN reserva.entrega e ON i.id_entrega = e.id_entrega
+        WHERE e.id_reserva = cast(:id_reserva AS int);
+            `,
+        {
+            replacements: { id_reserva },
+            type: QueryTypes.SELECT,
+        }
+    );
+    return images;
+}
+
+const getImageById = async (id_imagen) => {
+  const result = await sequelize.query(
+    `SELECT imagen FROM reserva.imagenes_entrega
+     WHERE id_imagen = :id_imagen`,
+    {
+      replacements: { id_imagen },
+      type: QueryTypes.SELECT,
+    }
+  );
+
+  return result[0]?.imagen;
+};
+
 export default {
-        getTransaction,
-        get_monedas,
-        getInfoPhotoById,
-        getInfoServicesByPhotographerId,
-        getInfoGalleryByPhotographerId,
-        loadFullImageById,
-        addServiceRequest,
-        getBasicInfoPhotographerById,
-        getBasicInfoServiceById,
-        getCountries,
-        getGenders,
-        getInfoUserById,
-        updateProfilePicture,
-        updateProfile,
-        updateInfoPhoneByUserId,
-        updateInfoPhotographerById
-    };
+    getTransaction,
+    get_monedas,
+    getInfoPhotoById,
+    getInfoServicesByPhotographerId,
+    getInfoGalleryByPhotographerId,
+    loadFullImageById,
+    addServiceRequest,
+    getBasicInfoPhotographerById,
+    getBasicInfoServiceById,
+    getCountries,
+    getGenders,
+    getInfoUserById,
+    updateProfilePicture,
+    updateProfile,
+    updateInfoPhoneByUserId,
+    updateInfoPhotographerById,
+    submitServiceRating,
+    getFullImagesByBookingId,
+    getImageById
+};

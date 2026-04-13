@@ -17,8 +17,8 @@ const getBookingsByUserId = async (req, res) => {
         for (let booking of bookings) {
             if (!booking.entrega) continue; // Si no hay información de entrega, saltar a la siguiente reserva
             booking.imagenes_entrega = await BookingDao.getImagesDeliveryById(booking.entrega.id_entrega);
+            booking.calificacion = await BookingDao.getRatingByBookingId(booking.id_reserva);
         }
-        console.log('Bookings with delivery info and images:', bookings);
 
         return successResponse(res, bookings, 'Reservas obtenidas correctamente');
     }
