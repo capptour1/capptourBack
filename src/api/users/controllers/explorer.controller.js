@@ -30,7 +30,9 @@ const getFullImage = async (req, res) => {
     }
 };
 
+
+
 export default {
     getExplorerImages,
-    getFullImage
+    getFullImage,
 };

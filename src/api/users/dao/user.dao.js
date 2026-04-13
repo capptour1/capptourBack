@@ -11,13 +11,13 @@ const getTransaction = async () => {
 }
 
 const get_monedas = async () => {
-  const result = await sequelize.query(
-    `SELECT * FROM fotografo.tipo_moneda;`,
-    {
-      type: QueryTypes.SELECT,
-    }
-  );
-  return result;
+    const result = await sequelize.query(
+        `SELECT * FROM fotografo.tipo_moneda;`,
+        {
+            type: QueryTypes.SELECT,
+        }
+    );
+    return result;
 
 };
 
@@ -93,14 +93,14 @@ const addServiceRequest = async (reservationData, transaction) => {
     const result = await sequelize.query(
         `INSERT INTO reserva.reserva (id_cliente, id_servicio, fecha, hora_inicio, hora_fin, longitud, latitud, notas)
          VALUES (cast(:id_cliente AS int), cast(:id_servicio AS int), cast(:fecha AS date), cast(:hora_inicio AS time), cast(:hora_fin AS time), cast(:longitud AS float), cast(:latitud AS float), :notas)
-         RETURNING id_reserva;`,    
+         RETURNING id_reserva;`,
         {
             replacements: { id_cliente, id_servicio, fecha, hora_inicio, hora_fin, longitud, latitud, notas },
             type: QueryTypes.INSERT,
             transaction: transaction
         }
     );
-    return result[0][0]; 
+    return result[0][0];
 }
 
 const getBasicInfoPhotographerById = async (photographerId) => {
@@ -119,7 +119,7 @@ const getBasicInfoPhotographerById = async (photographerId) => {
             type: QueryTypes.SELECT
         }
     );
-    
+
     return result[0];
 }
 
@@ -131,7 +131,7 @@ const getBasicInfoServiceById = async (serviceId) => {
             type: QueryTypes.SELECT
         }
     );
-    
+
     return result[0];
 }
 
@@ -251,7 +251,7 @@ const updateInfoPhoneByUserId = async (userId, infoPhone, t) => {
         const result = await sequelize.query(
             `UPDATE auth.usuario_telefono SET id_pais = cast(:pais_telefono AS int), telefono = :telefono WHERE id_usuario = cast(:id_usuario AS int) RETURNING id_usuario;`,
             {
-                replacements: { ...infoPhone, id_usuario: userId }, 
+                replacements: { ...infoPhone, id_usuario: userId },
                 type: QueryTypes.UPDATE
             }
         );
@@ -281,21 +281,35 @@ const updateInfoPhotographerById = async (userId, infoPhotographer, t) => {
 }
 
 
+const submitServiceRating = async (ratingData) => {
+    const result = await sequelize.query(
+        `INSERT INTO reserva.calificacion_servicio (id_reserva, puntualidad, calidad, profesionalismo, relacion, recomendacion, comentario)
+         VALUES (cast(:id_reserva AS int), cast(:puntualidad AS int), cast(:calidad_fotos AS int), cast(:profesionalismo AS int), cast(:relacion_calidad_precio AS int), cast(:recomendacion AS boolean), :comentario)
+         RETURNING id_calificacion;`,
+        {
+            replacements: { ...ratingData },
+            type: QueryTypes.INSERT
+        }
+    );
+    return result[0][0];
+}
+
+
 export default {
-    getTransaction,
-    get_monedas,
-    getInfoPhotoById,
-    getInfoServicesByPhotographerId,
-    getInfoGalleryByPhotographerId,
-    loadFullImageById,
-    addServiceRequest,
-    getBasicInfoPhotographerById,
-    getBasicInfoServiceById,
-    getCountries,
-    getGenders,
-    getInfoUserById,
-    updateProfilePicture,
-    updateProfile,
-    updateInfoPhoneByUserId,
-    updateInfoPhotographerById
-};
+        getTransaction,
+        get_monedas,
+        getInfoPhotoById,
+        getInfoServicesByPhotographerId,
+        getInfoGalleryByPhotographerId,
+        loadFullImageById,
+        addServiceRequest,
+        getBasicInfoPhotographerById,
+        getBasicInfoServiceById,
+        getCountries,
+        getGenders,
+        getInfoUserById,
+        updateProfilePicture,
+        updateProfile,
+        updateInfoPhoneByUserId,
+        updateInfoPhotographerById
+    };

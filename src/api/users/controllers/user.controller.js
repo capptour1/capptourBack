@@ -226,6 +226,41 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const submitServiceRating = async (req, res) => {
+    try {
+        const { 
+            id_reserva,
+            puntualidad,
+            calidad_fotos,
+            profesionalismo,
+            relacion_calidad_precio,
+            recomendacion,
+            comentario
+        } = req.body;
+
+        if (!id_reserva) {
+            throw new AppError('id_reserva is required', 400);
+        }
+
+        const ratingData = {
+            id_reserva,
+            puntualidad,
+            calidad_fotos,
+            profesionalismo,
+            relacion_calidad_precio,
+            recomendacion,
+            comentario
+        };
+
+        await explorerDao.submitServiceRating(ratingData);
+
+        return successResponse(res, {}, 'Service rating submitted successfully');
+    }
+    catch (error) {
+        return errorResponse(res, error.message, 500);
+    }
+};
+
 export default {
   get_monedas,
   getInfoPhotoById,
@@ -236,5 +271,6 @@ export default {
   getCountries,
   getGenders,
   getInfoUserById,
-  updateProfile
+  updateProfile,
+  submitServiceRating
 };
