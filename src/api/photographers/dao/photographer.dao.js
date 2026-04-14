@@ -37,6 +37,7 @@ const getInfoSessionPhotoDbById = async (id_usuario) => {
         `SELECT 
             r.id_reserva, r.fecha, r.hora_inicio, r.hora_fin, r.estado, r.fec_creacion,
             r.latitud, r.longitud,
+            f.id as id_fotografo, 
             c.id as id_cliente, c.nombre_completo as nombre_cliente,
             c.foto_perfil as thumbnail_cliente, 
             s.id_servicio, s.nombre as nombre_servicio, s.descripcion as descripcion_servicio,

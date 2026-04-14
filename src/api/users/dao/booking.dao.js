@@ -13,6 +13,7 @@ const getBookingsByUserId = async (id_usuario) => {
         SELECT
         r.id_reserva, r.fecha, r.hora_inicio, r.hora_fin, r.estado, r.fec_creacion,
         r.latitud, r.longitud,
+        r.id_cliente,
         f.id as id_fotografo, u.nombre_completo as nombre_fotografo, 
         u.foto_perfil as thumbnail_fotografo, 
         s.id_servicio, s.nombre as nombre_servicio, s.descripcion as descripcion_servicio,
