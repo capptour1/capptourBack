@@ -21,7 +21,7 @@ const getInfoPhotoDbById = async (id_usuario) => {
             f.is_active as disponibilidad
             FROM fotografo.fotografos f 
             INNER JOIN auth.usuarios u ON f.usuario_id = u.id
-            INNER JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
+            LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
             WHERE f.usuario_id = cast(:id_usuario AS int)`
         ,
         {

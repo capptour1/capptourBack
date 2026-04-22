@@ -105,7 +105,9 @@ const addServiceRequest = async (req, res) => {
       longitud,
       latitud,
       notas,
-      nombre_fotografo: basicInfoPhotographer.nombre
+      nombre_fotografo: basicInfoPhotographer.nombre,
+      thumbnail: basicInfoPhotographer.thumbnail
+        
     };
     console.log('Service request created with data:', response);
     await t.commit();

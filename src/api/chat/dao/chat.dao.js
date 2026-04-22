@@ -38,6 +38,7 @@ const getConversationById = async (conversationId) => {
       u.nombre_completo AS nombre_cliente,
       u.foto_perfil AS foto_cliente,
       c.id_fotografo,
+      f.usuario_id AS usuario_fotografo_id,
       u2.nombre_completo AS nombre_fotografo,
       c.id_fotografo,
       u2.nombre_completo AS nombre_fotografo,
@@ -191,8 +192,9 @@ const createSessionConversation = async (
 const getInfoConversationById = async (conversationId, transaction) => {
   const conversation = await sequelize.query(
     `SELECT c.id_chat AS id_conversacion, c.tipo, u.nombre_completo AS nombre_cliente,
-
+      u.foto_perfil AS foto_cliente,
       u2.nombre_completo AS nombre_fotografo, c.id_cliente, c.id_fotografo, c.id_reserva,
+      u2.foto_perfil AS foto_fotografo,
       c.fec_creacion, c.fec_update
     FROM chat.conversacion c
     JOIN auth.usuarios u ON c.id_cliente = u.id

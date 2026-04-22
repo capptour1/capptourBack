@@ -34,7 +34,7 @@ const getInfoPhotoById = async (photographerId) => {
             tr.descripcion AS rol
             FROM fotografo.fotografos f 
             INNER JOIN auth.usuarios u ON f.usuario_id = u.id
-            INNER JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
+            LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
             INNER JOIN fotografo.tipo_experiencia te ON f.id_experiencia = te.id_experiencia 
             INNER JOIN fotografo.tipo_rol tr ON f.id_rol = tr.id_rol 
             LEFT JOIN auth.usuario_telefono ut ON u.id = ut.id_usuario
@@ -107,6 +107,7 @@ const getBasicInfoPhotographerById = async (photographerId) => {
     const result = await sequelize.query(
         `SELECT f.id AS id_fotografo,
             u.nombre_completo as nombre,
+            u.foto_perfil as thumbnail,
             te.descripcion AS experiencia,
             tr.descripcion AS rol
             FROM fotografo.fotografos f 
