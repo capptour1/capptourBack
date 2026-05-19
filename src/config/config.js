@@ -1,9 +1,9 @@
+import 'dotenv/config';
 
 export default {
-  host: 'ep-snowy-mountain-a8yj0dvq-pooler.eastus2.azure.neon.tech',
-  database: 'neondb',
-  username: 'neondb_owner',
-  password: 'npg_q9jxE7PcVRDH',
-  port: 5432,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  username: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT || 5432,
 };
-

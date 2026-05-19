@@ -1,50 +1,20 @@
 import sequelize from '../../../models/index.js';
 import { QueryTypes } from 'sequelize';
-
 import bcrypt from 'bcrypt';
 
-const isBcryptHash = (passwordFromDB) => {
-  return /^\$2[aby]\$/.test(passwordFromDB);
-};
-
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const start_transaction = () => {
   return sequelize.transaction({ autocommit: false });
-}
-
-const register_client = async (name, email, password, transaction) => {
-  try {
-    console.log('Register client controller called');
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const result = await sequelize.query(
-      `INSERT INTO auth.usuarios (nombre_completo, email, password, rol_id)
-       VALUES (:name, :email, :password, 3)
-       RETURNING *;`,
-      {
-        replacements: { name, email, password: hashedPassword },
-        type: QueryTypes.INSERT,
-        transaction
-      }
-    );
-
-    return result[0][0];
-  } catch (error) {
-    console.error('Error registering client:', error);
-    throw new Error('Error al registrar el cliente');
-  }
 };
 
-
+// ─── Email / password ─────────────────────────────────────────────────────────
 
 const check_email_exists = async (email) => {
   try {
     const result = await sequelize.query(
-      `SELECT * FROM auth.usuarios WHERE trim(lower(email)) = trim(lower(:email));`,
-      {
-        replacements: { email },
-        type: QueryTypes.SELECT,
-      }
+      `SELECT id FROM auth.usuarios WHERE trim(lower(email)) = trim(lower(:email));`,
+      { replacements: { email }, type: QueryTypes.SELECT }
     );
     return result.length > 0;
   } catch (error) {
@@ -57,10 +27,7 @@ const find_user_by_email = async (email) => {
   try {
     const result = await sequelize.query(
       `SELECT * FROM auth.usuarios WHERE trim(lower(email)) = trim(lower(:email));`,
-      {
-        replacements: { email },
-        type: QueryTypes.SELECT,
-      }
+      { replacements: { email }, type: QueryTypes.SELECT }
     );
     return result.length > 0 ? result[0] : null;
   } catch (error) {
@@ -69,68 +36,134 @@ const find_user_by_email = async (email) => {
   }
 };
 
-const find_photographer_by_user_id = async (user_id) => {
-  try {
-    const result = await sequelize.query(
-      `SELECT * FROM fotografo.fotografos WHERE usuario_id = cast(:user_id AS int);`,
-      {
-        replacements: { user_id },
-        type: QueryTypes.SELECT,
-      }
-    );
-    return result.length > 0 ? result[0] : null;
-  }
-  catch (error) {
-    console.error('Error finding photographer by user ID:', error);
-    throw new Error('Error al buscar el fotógrafo por ID de usuario');
-  }
+const find_user_by_id = async (userId) => {
+  const result = await sequelize.query(
+    `SELECT * FROM auth.usuarios WHERE id = :userId`,
+    { replacements: { userId }, type: QueryTypes.SELECT }
+  );
+  return result[0] || null;
 };
 
 const verify_password = async (plainPassword, storedPassword, userId) => {
   try {
-
-    // 🟢 Caso 1: Usuario ya migrado
+    // Caso 1: password ya hasheada con bcrypt
     if (/^\$2[aby]\$/.test(storedPassword)) {
       return await bcrypt.compare(plainPassword, storedPassword);
     }
 
-    // 🔴 Caso 2: Usuario legacy (texto plano)
+    // Caso 2: password legacy en texto plano → migrar automáticamente
     if (plainPassword === storedPassword) {
-
-      console.log("⚠️ Password legacy detectada → migrando...");
-
-      // 🔐 Hashear inmediatamente
+      console.log('⚠️  Password legacy detectada → migrando...');
       const newHashedPassword = await bcrypt.hash(plainPassword, 10);
-
-      // 💾 Guardar nueva password hasheada
       await sequelize.query(
-        `UPDATE auth.usuarios 
-         SET password = :newPassword
-         WHERE id = :userId`,
-        {
-          replacements: {
-            newPassword: newHashedPassword,
-            userId
-          }
-        }
+        `UPDATE auth.usuarios SET password = :newPassword WHERE id = :userId`,
+        { replacements: { newPassword: newHashedPassword, userId } }
       );
-
-      console.log("✅ Password migrada correctamente");
-
+      console.log('✅ Password migrada correctamente');
       return true;
     }
 
     return false;
-
   } catch (error) {
     console.error('Error verifying password:', error);
     throw new Error('Error al verificar la contraseña');
   }
 };
 
+const update_password = async (userId, password) => {
+  const hashedPassword = await bcrypt.hash(password, 10);
+  await sequelize.query(
+    `UPDATE auth.usuarios SET password = :password WHERE id = :userId`,
+    { replacements: { password: hashedPassword, userId }, type: QueryTypes.UPDATE }
+  );
+};
+
+// ─── Social login ─────────────────────────────────────────────────────────────
+
+/**
+ * Busca un usuario por su proveedor_id (Google sub / Apple sub).
+ * Se usa en logins posteriores al primero para evitar crear duplicados.
+ */
+const find_user_by_provider = async (provider, providerId) => {
+  try {
+    const result = await sequelize.query(
+      `SELECT * FROM auth.usuarios
+       WHERE proveedor_auth = :provider AND proveedor_id = :providerId`,
+      { replacements: { provider, providerId }, type: QueryTypes.SELECT }
+    );
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error('Error finding user by provider:', error);
+    throw new Error('Error al buscar el usuario por proveedor');
+  }
+};
+
+/**
+ * Crea un usuario nuevo que se registra por primera vez con social login.
+ * No tiene password local.
+ */
+const register_social_user = async (name, email, provider, providerId, transaction) => {
+  try {
+    const result = await sequelize.query(
+      `INSERT INTO auth.usuarios (nombre_completo, email, proveedor_auth, proveedor_id, rol_id)
+       VALUES (:name, :email, :provider, :providerId, 3)
+       RETURNING *;`,
+      {
+        replacements: { name, email, provider, providerId },
+        type: QueryTypes.INSERT,
+        transaction
+      }
+    );
+    return result[0][0];
+  } catch (error) {
+    console.error('Error registering social user:', error);
+    throw new Error('Error al registrar el usuario con social login');
+  }
+};
+
+/**
+ * Vincula un proveedor social a una cuenta existente (tenía cuenta local con ese email).
+ */
+const link_provider_to_user = async (userId, provider, providerId) => {
+  try {
+    await sequelize.query(
+      `UPDATE auth.usuarios
+       SET proveedor_auth = :provider, proveedor_id = :providerId
+       WHERE id = :userId`,
+      { replacements: { userId, provider, providerId }, type: QueryTypes.UPDATE }
+    );
+  } catch (error) {
+    console.error('Error linking provider to user:', error);
+    throw new Error('Error al vincular el proveedor al usuario');
+  }
+};
+
+// ─── Registro ─────────────────────────────────────────────────────────────────
+
+const register_client = async (name, email, password, transaction) => {
+  try {
+    console.log('Register client DAO called');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await sequelize.query(
+      `INSERT INTO auth.usuarios (nombre_completo, email, password, rol_id)
+       VALUES (:name, :email, :password, 3)
+       RETURNING *;`,
+      {
+        replacements: { name, email, password: hashedPassword },
+        type: QueryTypes.INSERT,
+        transaction
+      }
+    );
+    return result[0][0];
+  } catch (error) {
+    console.error('Error registering client:', error);
+    throw new Error('Error al registrar el cliente');
+  }
+};
+
 const register_user_photographer = async (name, email, password, transaction) => {
   try {
-    console.log('Register photographer user controller called');
+    console.log('Register photographer user DAO called');
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await sequelize.query(
       `INSERT INTO auth.usuarios (nombre_completo, email, password, rol_id)
@@ -142,15 +175,12 @@ const register_user_photographer = async (name, email, password, transaction) =>
         transaction
       }
     );
-
     return result[0][0];
   } catch (error) {
     console.error('Error registering photographer user:', error);
     throw new Error('Error al registrar el fotógrafo');
   }
 };
-
-
 
 const register_photographer_v2 = async (user_id, experience_id, rol_id, transaction) => {
   try {
@@ -174,11 +204,11 @@ const register_photographer_v2 = async (user_id, experience_id, rol_id, transact
 const register_services_v2 = async (service, transaction) => {
   try {
     const result = await sequelize.query(
-      `INSERT INTO fotografo.servicios (id_fotografo, nombre, descripcion, precio_hora,
-        id_moneda, editadas, no_editadas)
-        VALUES (:photographer_id, :name, :description, :price_hour,
-        :currency_id, :edited_photos, :unedited_photos)
-        RETURNING *;`,
+      `INSERT INTO fotografo.servicios
+         (id_fotografo, nombre, descripcion, precio_hora, id_moneda, editadas, no_editadas)
+       VALUES
+         (:photographer_id, :name, :description, :price_hour, :currency_id, :edited_photos, :unedited_photos)
+       RETURNING *;`,
       {
         replacements: {
           photographer_id: service.id_fotografo,
@@ -202,11 +232,10 @@ const register_services_v2 = async (service, transaction) => {
 
 const register_gallery_images_v2 = async (imagesData, transaction) => {
   try {
-    for (let i = 0; i < imagesData.length; i++) {
-      const item = imagesData[i];
+    for (const item of imagesData) {
       await sequelize.query(
         `INSERT INTO fotografo.imagen_servicio (id_servicio, imagen, thumbnail)
-        VALUES (:id_servicio, :imagen, :thumbnail)`,
+         VALUES (:id_servicio, :imagen, :thumbnail)`,
         {
           replacements: {
             id_servicio: item.id_servicio,
@@ -224,49 +253,45 @@ const register_gallery_images_v2 = async (imagesData, transaction) => {
   }
 };
 
-const find_user_by_id = async (userId) => {
+// ─── Fotógrafo ────────────────────────────────────────────────────────────────
 
-  const result = await sequelize.query(
-    `SELECT * FROM auth.usuarios WHERE id = :userId`,
-    {
-      replacements: { userId },
-      type: QueryTypes.SELECT
-    }
-  );
-  return result[0];
-
+const find_photographer_by_user_id = async (user_id) => {
+  try {
+    const result = await sequelize.query(
+      `SELECT * FROM fotografo.fotografos WHERE usuario_id = cast(:user_id AS int);`,
+      { replacements: { user_id }, type: QueryTypes.SELECT }
+    );
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error('Error finding photographer by user ID:', error);
+    throw new Error('Error al buscar el fotógrafo por ID de usuario');
+  }
 };
 
-const update_password = async (userId, password) => {
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  await sequelize.query(
-    `UPDATE auth.usuarios SET password = :password WHERE id = :userId`,
-    {
-      replacements: { password: hashedPassword, userId },
-      type: QueryTypes.UPDATE
-    }
-  );
-};
-
+// ─── Exports ──────────────────────────────────────────────────────────────────
 
 export default {
   start_transaction,
-  register_client,
+
+  // email / password
   check_email_exists,
   find_user_by_email,
-  find_photographer_by_user_id,
-  verify_password,
   find_user_by_id,
+  verify_password,
   update_password,
 
-  register_user_photographer,
+  // social login
+  find_user_by_provider,
+  register_social_user,
+  link_provider_to_user,
 
-  // NEW ENDPOINT
+  // registro
+  register_client,
+  register_user_photographer,
   register_photographer_v2,
   register_services_v2,
   register_gallery_images_v2,
+
+  // fotógrafo
+  find_photographer_by_user_id,
 };
-
-
