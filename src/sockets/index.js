@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import chatSocket from './chat.socket.js';
 import requestSocket from './request.socket.js';
 import notificationSocket from './notification.socket.js';
+import locationSocket from './location.socket.js';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'secret_key';
 
@@ -56,6 +57,7 @@ export default function initSockets(server) {
     chatSocket(io, socket);
     requestSocket(io, socket);
     notificationSocket(io, socket);
+    locationSocket(io, socket);
 
     socket.on('disconnect', () => {
       console.log(`❌ Cliente desconectado: ${socket.id}`);
