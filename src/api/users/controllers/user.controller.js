@@ -303,6 +303,27 @@ const getImageById = async (req, res) => {
   }
 };
 
+const createInstantSession = async (req, res) => {
+  let t = null;
+  try {
+    t = await UserDAO.getTransaction();
+    const { id_cliente, id_fotografo, id_servicio, latitud, longitud } = req.body;
+
+    if (!id_cliente || !id_fotografo) {
+      throw new AppError('id_cliente e id_fotografo son requeridos', 400);
+    }
+
+    const data = { id_cliente, id_fotografo, id_servicio, latitud, longitud };
+    const reservation = await UserDAO.createInstantSession(data, t);
+    
+    await t.commit();
+    return successResponse(res, reservation, 'Sesión inmediata creada exitosamente');
+  } catch (error) {
+    if (t) await t.rollback();
+    return errorResponse(res, error);
+  }
+};
+
 export default {
   get_monedas,
   getInfoPhotoById,
@@ -317,5 +338,6 @@ export default {
   submitServiceRating,
   getFullImagesByBookingId,
   getImageById,
+  createInstantSession,
   
 };

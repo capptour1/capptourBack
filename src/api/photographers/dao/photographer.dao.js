@@ -248,12 +248,29 @@ const deleteImageDelivery = async (id_imagen, transaction) => {
 
 const getInfoServices = async (photographerId) => {
     const result = await sequelize.query(
-        `SELECT s.id_servicio, s.nombre, s.descripcion, s.precio_hora, s.editadas, s.no_editadas, tm.id_moneda, tm.codigo, s.id_fotografo 
+        `SELECT s.id_servicio, s.nombre, s.descripcion, s.precio_hora, s.editadas, s.no_editadas, 
+            tm.id_moneda, tm.codigo, s.id_fotografo, s.id_ubicacion,
+            u.ciudad, u.estado, u.pais, u.codigo_pais
             FROM fotografo.servicios s 
             INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda 
-            WHERE s.id_fotografo = cast(:id_fotografo AS int);`,
+            LEFT JOIN catalogo.ubicaciones u ON s.id_ubicacion = u.id_ubicacion
+            WHERE s.id_fotografo = cast(:id_fotografo AS int)
+            AND s.estado = 'A';`,
         {
             replacements: { id_fotografo: photographerId },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result;
+};
+
+const getLocations = async () => {
+    const result = await sequelize.query(
+        `SELECT id_ubicacion, ciudad, estado, pais, codigo_pais 
+            FROM catalogo.ubicaciones 
+            WHERE activo = true 
+            ORDER BY pais, ciudad;`,
+        {
             type: QueryTypes.SELECT
         }
     );
@@ -279,9 +296,9 @@ const addService = async (service, transaction) => {
     try {
         const result = await sequelize.query(
             `INSERT INTO fotografo.servicios (id_fotografo, nombre, descripcion, precio_hora,
-        id_moneda, editadas, no_editadas)
+        id_moneda, editadas, no_editadas, id_ubicacion)
         VALUES (:photographer_id, :name, :description, :price_hour,
-        :currency_id, :edited_photos, :unedited_photos)
+        :currency_id, :edited_photos, :unedited_photos, :id_ubicacion)
         RETURNING *;`,
             {
                 replacements: {
@@ -291,7 +308,8 @@ const addService = async (service, transaction) => {
                     price_hour: service.precio_hora,
                     currency_id: service.id_moneda,
                     edited_photos: service.editadas,
-                    unedited_photos: service.no_editadas
+                    unedited_photos: service.no_editadas,
+                    id_ubicacion: service.id_ubicacion || null
                 },
                 type: QueryTypes.INSERT,
                 transaction
@@ -346,7 +364,8 @@ export default {
     getInfoServices,
     getInfoGallery,
     addService,
-    addGalleryImages
+    addGalleryImages,
+    getLocations
 
 
 };

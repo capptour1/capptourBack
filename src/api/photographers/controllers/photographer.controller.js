@@ -238,7 +238,8 @@ const addService = async (req, res) => {
         id_moneda: servicio.currency_id,
         editadas: servicio.edited,
         no_editadas: servicio.unedited,
-        id_fotografo: userInfo.id_fotografo
+        id_fotografo: userInfo.id_fotografo,
+        id_ubicacion: servicio.id_ubicacion || null
       };
 
 
@@ -272,6 +273,15 @@ const addService = async (req, res) => {
   }
 }
 
+const getLocations = async (req, res) => {
+  try {
+    const locations = await PhotographerDAO.getLocations();
+    return successResponse(res, locations, 'Ubicaciones obtenidas correctamente');
+  } catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
 export default {
   getInfoPhotoDbById,
   changeStatusSession,
@@ -282,5 +292,6 @@ export default {
   uploadLinksDelivery,
   deleteImageDelivery,
   getServices,
-  addService
+  addService,
+  getLocations
 };

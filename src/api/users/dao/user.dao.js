@@ -325,6 +325,57 @@ const getImageById = async (id_imagen) => {
   return result[0]?.imagen;
 };
 
+const createInstantSession = async (data, transaction) => {
+    const { id_cliente, id_fotografo, id_servicio, latitud, longitud } = data;
+
+    // Si no se proporcionó servicio, tomar el primero activo del fotógrafo
+    let serviceId = id_servicio;
+    if (!serviceId) {
+        const services = await sequelize.query(
+            `SELECT id_servicio FROM fotografo.servicios 
+             WHERE id_fotografo = cast(:id_fotografo AS int) AND estado = 'A' 
+             ORDER BY fec_creacion DESC LIMIT 1;`,
+            {
+                replacements: { id_fotografo },
+                type: QueryTypes.SELECT,
+                transaction
+            }
+        );
+        if (services.length === 0) {
+            throw new Error('El colaborador no tiene servicios activos');
+        }
+        serviceId = services[0].id_servicio;
+    }
+
+    const now = new Date();
+    const fecha = now.toISOString().split('T')[0];
+    const hora_inicio = `${now.getHours()}:${now.getMinutes()}`;
+    const hora_fin_date = new Date(now.getTime() + 60 * 60 * 1000); // +1 hora
+    const hora_fin = `${hora_fin_date.getHours()}:${hora_fin_date.getMinutes()}`;
+
+    const result = await sequelize.query(
+        `INSERT INTO reserva.reserva (id_cliente, id_servicio, fecha, hora_inicio, hora_fin, longitud, latitud, estado, notas)
+         VALUES (cast(:id_cliente AS int), cast(:id_servicio AS int), cast(:fecha AS date), 
+                 cast(:hora_inicio AS time), cast(:hora_fin AS time), 
+                 cast(:longitud AS float), cast(:latitud AS float), 'C', 'Sesión inmediata vía QR')
+         RETURNING id_reserva;`,
+        {
+            replacements: { 
+                id_cliente, 
+                id_servicio: serviceId, 
+                fecha, 
+                hora_inicio, 
+                hora_fin,
+                longitud: longitud || null, 
+                latitud: latitud || null 
+            },
+            type: QueryTypes.INSERT,
+            transaction
+        }
+    );
+    return result[0][0];
+};
+
 export default {
     getTransaction,
     get_monedas,
@@ -344,5 +395,6 @@ export default {
     updateInfoPhotographerById,
     submitServiceRating,
     getFullImagesByBookingId,
-    getImageById
+    getImageById,
+    createInstantSession
 };

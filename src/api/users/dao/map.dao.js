@@ -52,12 +52,14 @@ const searchPhotographers = async (lat, lng) => {
         INNER JOIN fotografo.tipo_rol tr
             ON f.id_rol = tr.id_rol
         LEFT JOIN LATERAL (
-            SELECT precio_hora, tm.id_moneda, tm.codigo
-            FROM fotografo.servicios fs
-            INNER JOIN fotografo.tipo_moneda tm ON fs.id_moneda = tm.id_moneda
-            WHERE fs.id_fotografo = f.id
-            AND fs.estado = 'A'
-            ORDER BY fs.fec_creacion DESC
+            SELECT s.precio_hora, tm.id_moneda, tm.codigo
+            FROM fotografo.servicios s
+            INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda
+            WHERE s.id_fotografo = f.id
+            AND s.estado = 'A'
+            ORDER BY 
+                CASE WHEN s.id_ubicacion IS NOT NULL THEN 0 ELSE 1 END,
+                s.fec_creacion DESC
             LIMIT 1
         ) fs ON TRUE
 

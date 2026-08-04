@@ -23,5 +23,6 @@ router.post('/uploadImageDelivery', upload.any(), photographerController.uploadI
 router.post('/deleteImageDelivery', photographerController.deleteImageDelivery);
 router.post('/getServices', photographerController.getServices);
 router.post('/addService', upload.any(), photographerController.addService);
+router.post('/getLocations', photographerController.getLocations);
 
 export default router;
