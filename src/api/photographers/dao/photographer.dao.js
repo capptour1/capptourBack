@@ -18,7 +18,8 @@ const getInfoPhotoDbById = async (id_usuario) => {
             u.foto_perfil as thumbnail,
             u.nombre_completo as nombre,
             l.latitud, l.longitud,
-            f.is_active as disponibilidad
+            f.is_active as disponibilidad,
+            f.id_experiencia, f.id_rol
             FROM fotografo.fotografos f 
             INNER JOIN auth.usuarios u ON f.usuario_id = u.id
             LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
