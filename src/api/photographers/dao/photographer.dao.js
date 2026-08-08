@@ -21,9 +21,9 @@ const getInfoPhotoDbById = async (id_usuario) => {
             f.is_active as disponibilidad,
             f.id_experiencia, f.id_rol
             FROM fotografo.fotografos f 
-            INNER JOIN auth.usuarios u ON f.usuario_id = u.id
+            INNER JOIN auth.usuarios u ON f.id_usuario = u.id
             LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
-            WHERE f.usuario_id = cast(:id_usuario AS int)`
+            WHERE f.id_usuario = cast(:id_usuario AS int)`
         ,
         {
             replacements: { id_usuario: id_usuario },
@@ -87,7 +87,7 @@ const getInfoSessionPhotoDbById = async (id_usuario) => {
         INNER JOIN fotografo.tipo_moneda tm
             ON tm.id_moneda = rs.id_moneda
 
-        WHERE f.usuario_id = CAST(:id_usuario AS int)
+        WHERE f.id_usuario = CAST(:id_usuario AS int)
 
         ORDER BY r.fecha DESC,
                 r.hora_inicio DESC,
@@ -119,7 +119,7 @@ const changeAvailability = async (id_usuario, disponibilidad) => {
     await sequelize.query(
         `UPDATE fotografo.fotografos
         SET is_active = cast(:disponibilidad AS boolean)
-        WHERE usuario_id = cast(:id_usuario AS int)
+        WHERE id_usuario = cast(:id_usuario AS int)
         `,
         {
             replacements: { id_usuario, disponibilidad },
@@ -286,23 +286,57 @@ const deleteImageDelivery = async (id_imagen, transaction) => {
     );
 }
 
-const getInfoServices = async (photographerId) => {
+const getInfoServices = async (userId) => {
     const result = await sequelize.query(
-        `SELECT s.id_servicio, s.nombre, s.descripcion, s.precio_hora, s.editadas, s.no_editadas, 
-            tm.id_moneda, tm.codigo, s.id_fotografo, s.id_ubicacion,
-            u.ciudad, u.estado, u.pais, u.codigo_pais
-            FROM fotografo.servicios s 
-            INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda 
-            LEFT JOIN catalogo.ubicaciones u ON s.id_ubicacion = u.id_ubicacion
-            WHERE s.id_fotografo = cast(:id_fotografo AS int)
-            AND s.estado = 'A';`,
+        `
+        SELECT
+            s.id_servicio,
+            s.nombre,
+            s.descripcion,
+            s.precio_hora,
+            s.editadas,
+            s.no_editadas,
+            tm.id_moneda,
+            tm.codigo,
+            tm.simbolo
+        FROM fotografo.servicios s
+        INNER JOIN fotografo.fotografos f
+            ON f.id = s.id_fotografo
+        INNER JOIN fotografo.tipo_moneda tm
+            ON tm.id_moneda = s.id_moneda
+        WHERE f.id_usuario = cast(:id_usuario AS int)
+        AND s.estado = 'A';
+        `,
         {
-            replacements: { id_fotografo: photographerId },
+            replacements: { id_usuario: userId },
             type: QueryTypes.SELECT
         }
     );
     return result;
 };
+
+const getInfoGallery = async (userId) => {
+    const result = await sequelize.query(
+        `
+        SELECT
+            t.id_servicio,
+            t.id_imagen,
+            t.thumbnail
+        FROM fotografo.imagen_servicio t
+        INNER JOIN fotografo.servicios s
+            ON s.id_servicio = t.id_servicio
+        INNER JOIN fotografo.fotografos f
+            ON f.id = s.id_fotografo
+        WHERE f.id_usuario = cast(:id_usuario AS int)
+        `,
+        {
+            replacements: { id_usuario: userId },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result;
+}
+
 
 const getLocations = async () => {
     const result = await sequelize.query(
@@ -317,19 +351,6 @@ const getLocations = async () => {
     return result;
 };
 
-const getInfoGallery = async (photographerId) => {
-    const result = await sequelize.query(
-        `SELECT s.id_servicio, t.id_imagen, t.thumbnail 
-            FROM fotografo.servicios s 
-            INNER JOIN fotografo.imagen_servicio t ON s.id_servicio = t.id_servicio 
-           WHERE s.id_fotografo = cast(:id_fotografo AS int);`,
-        {
-            replacements: { id_fotografo: photographerId },
-            type: QueryTypes.SELECT
-        }
-    );
-    return result;
-}
 
 
 const addService = async (service, transaction) => {

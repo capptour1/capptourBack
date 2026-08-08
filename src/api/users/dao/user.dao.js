@@ -47,7 +47,7 @@ const getInfoPhotoById = async (photographerId) => {
         FROM fotografo.fotografos f
 
         INNER JOIN auth.usuarios u
-            ON u.id = f.usuario_id
+            ON u.id = f.id_usuario
 
         LEFT JOIN fotografo.localizacion l
             ON l.id_fotografo = f.id
@@ -167,7 +167,7 @@ const getBasicInfoPhotographerById = async (photographerId) => {
             te.descripcion AS experiencia,
             tr.descripcion AS rol
             FROM fotografo.fotografos f 
-            INNER JOIN auth.usuarios u ON f.usuario_id = u.id
+            INNER JOIN auth.usuarios u ON f.id_usuario = u.id
             INNER JOIN fotografo.tipo_experiencia te ON f.id_experiencia = te.id_experiencia
             INNER JOIN fotografo.tipo_rol tr ON f.id_rol = tr.id_rol
             WHERE f.id = cast(:id_fotografo AS int);`,
@@ -250,7 +250,7 @@ const getInfoUserById = async (userId, id_rol) => {
         LEFT JOIN auth.usuario_telefono ut ON u.id = ut.id_usuario
         LEFT JOIN public.paises p ON ut.id_pais = p.id_pais
         LEFT JOIN public.paises p2 ON u.id_pais = p2.id_pais
-        LEFT JOIN fotografo.fotografos f ON u.id = f.usuario_id
+        LEFT JOIN fotografo.fotografos f ON u.id = f.id_usuario
         LEFT JOIN public.generos g ON u.id_genero = g.id_genero
         LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo
         WHERE u.id = cast(:id_usuario AS int);
@@ -328,7 +328,7 @@ const updateInfoPhoneByUserId = async (userId, infoPhone, t) => {
 
 const updateInfoPhotographerById = async (userId, infoPhotographer, t) => {
     const result = await sequelize.query(
-        `UPDATE fotografo.fotografos SET descripcion = :descripcion, herramientas = :herramientas WHERE usuario_id = cast(:id_usuario AS int) RETURNING id;`,
+        `UPDATE fotografo.fotografos SET descripcion = :descripcion, herramientas = :herramientas WHERE id_usuario = cast(:id_usuario AS int) RETURNING id;`,
         {
             replacements: { ...infoPhotographer, id_usuario: userId },
             type: QueryTypes.UPDATE,

@@ -7,10 +7,10 @@ const router = express.Router();
 router.post('/save', async (req, res) => {
     try {
         const { fotografo_id, foto_url } = req.body;
-        const usuario_id = req.user.userId; // ID del usuario autenticado (cliente)
+        const id_usuario = req.user.userId; // ID del usuario autenticado (cliente)
 
         // Validar que los IDs existen
-        const userCheck = await db.query('SELECT id FROM auth.usuarios WHERE id = $1', [usuario_id]);
+        const userCheck = await db.query('SELECT id FROM auth.usuarios WHERE id = $1', [id_usuario]);
         if (userCheck.rows.length === 0) {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
@@ -22,12 +22,12 @@ router.post('/save', async (req, res) => {
 
         // Insertar la foto inmediata
         const query = `
-      INSERT INTO fotografo.fotos_inmediatas (fotografo_id, usuario_id, foto_url)
+      INSERT INTO fotografo.fotos_inmediatas (fotografo_id, id_usuario, foto_url)
       VALUES ($1, $2, $3) 
       RETURNING *
     `;
 
-        const result = await db.query(query, [fotografo_id, usuario_id, foto_url]);
+        const result = await db.query(query, [fotografo_id, id_usuario, foto_url]);
 
         res.status(200).json(result.rows[0]);
     } catch (err) {
@@ -39,17 +39,17 @@ router.post('/save', async (req, res) => {
 // GET /api/photos/immediate/photographer/:id - Obtener fotógrafo por ID (público)
 router.get('/photographer/:id', async (req, res) => {
     try {
-        const usuarioId = req.params.id; // ← Ahora es usuario_id
+        const usuarioId = req.params.id; // ← Ahora es id_usuario
 
-        //  CONSULTA CORREGIDA - buscar por usuario_id
+        //  CONSULTA CORREGIDA - buscar por id_usuario
         const query = `
             SELECT 
-                u.id,                    -- ← Devolver usuario_id como id
+                u.id,                    -- ← Devolver id_usuario como id
                 u.nombre_completo AS nombre,
                 u.email,
                 f.id as fotografo_id     -- ← Y también el fotografo_id por si acaso
             FROM auth.usuarios u
-            LEFT JOIN fotografo.fotografos f ON u.id = f.usuario_id
+            LEFT JOIN fotografo.fotografos f ON u.id = f.id_usuario
             WHERE u.id = $1 AND u.rol_id = 5  -- ← Solo fotógrafos
         `;
 
@@ -62,7 +62,7 @@ router.get('/photographer/:id', async (req, res) => {
         const fotografo = result.rows[0];
 
         res.status(200).json({
-            id: fotografo.id,           // ← usuario_id (35)
+            id: fotografo.id,           // ← id_usuario (35)
             fotografo_id: fotografo.fotografo_id, // ← fotografo_id (7)
             nombre: fotografo.nombre,
             email: fotografo.email

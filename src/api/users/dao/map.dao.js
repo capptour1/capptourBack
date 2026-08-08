@@ -41,7 +41,7 @@ const searchPhotographers = async (lat, lng) => {
 
         FROM fotografo.fotografos f
         INNER JOIN auth.usuarios u 
-            ON f.usuario_id = u.id
+            ON f.id_usuario = u.id
         INNER JOIN fotografo.localizacion l 
             ON f.id = l.id_fotografo
         INNER JOIN fotografo.tipo_experiencia te

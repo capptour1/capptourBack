@@ -37,7 +37,7 @@ export function initFotoInmediata(io, usuariosConectados) {
 
                 // OBTENER FOTÓGRAFO
                 const fotografoResult = await pool.query(
-                    'SELECT id as fotografo_id FROM fotografo.fotografos WHERE usuario_id = $1',
+                    'SELECT id as fotografo_id FROM fotografo.fotografos WHERE id_usuario = $1',
                     [fotografoUsuarioId]
                 );
 
@@ -50,7 +50,7 @@ export function initFotoInmediata(io, usuariosConectados) {
 
                 // GUARDAR SOLICITUD
                 const result = await pool.query(
-                    'INSERT INTO fotografo.solicitudes_foto (fotografo_id, usuario_id, estado) VALUES ($1, $2, $3) RETURNING *',
+                    'INSERT INTO fotografo.solicitudes_foto (fotografo_id, id_usuario, estado) VALUES ($1, $2, $3) RETURNING *',
                     [fotografoRealId, usuarioIdNum, 'pendiente']
                 );
 
@@ -133,14 +133,14 @@ export function initFotoInmediata(io, usuariosConectados) {
                 const solicitudData = await pool.query(`
                     SELECT s.*, u.nombre_completo as usuario_nombre 
                     FROM fotografo.solicitudes_foto s 
-                    JOIN auth.usuarios u ON s.usuario_id = u.id 
+                    JOIN auth.usuarios u ON s.id_usuario = u.id 
                     WHERE s.id = $1
                 `, [solicitudId]);
 
                 const solicitud = solicitudData.rows[0];
 
                 // Notificar al usuario
-                io.to(`usuario:${solicitud.usuario_id}`).emit('solicitud-aceptada', {
+                io.to(`usuario:${solicitud.id_usuario}`).emit('solicitud-aceptada', {
                     solicitudId: solicitudId,
                     mensaje: 'El fotógrafo ha aceptado tu solicitud'
                 });
@@ -148,7 +148,7 @@ export function initFotoInmediata(io, usuariosConectados) {
                 // Notificar al fotógrafo
                 socket.emit('puede-tomar-foto', {
                     solicitudId: solicitudId,
-                    usuarioId: solicitud.usuario_id,
+                    usuarioId: solicitud.id_usuario,
                     usuarioNombre: solicitud.usuario_nombre
                 });
 
@@ -171,12 +171,12 @@ export function initFotoInmediata(io, usuariosConectados) {
                 );
 
                 const solicitudData = await pool.query(
-                    'SELECT usuario_id FROM fotografo.solicitudes_foto WHERE id = $1',
+                    'SELECT id_usuario FROM fotografo.solicitudes_foto WHERE id = $1',
                     [solicitudId]
                 );
 
                 if (solicitudData.rows.length > 0) {
-                    io.to(`usuario:${solicitudData.rows[0].usuario_id}`).emit('solicitud-rechazada', {
+                    io.to(`usuario:${solicitudData.rows[0].id_usuario}`).emit('solicitud-rechazada', {
                         solicitudId: solicitudId,
                         mensaje: 'El fotógrafo ha rechazado tu solicitud'
                     });
@@ -196,7 +196,7 @@ export function initFotoInmediata(io, usuariosConectados) {
                 const solicitudData = await pool.query(`
                     SELECT s.*, u.nombre_completo as usuario_nombre 
                     FROM fotografo.solicitudes_foto s 
-                    JOIN auth.usuarios u ON s.usuario_id = u.id 
+                    JOIN auth.usuarios u ON s.id_usuario = u.id 
                     WHERE s.id = $1
                 `, [solicitudId]);
 
@@ -207,9 +207,9 @@ export function initFotoInmediata(io, usuariosConectados) {
                 // Guardar foto en BD
                 await pool.query(
                     `INSERT INTO fotografo.fotos_inmediatas 
-                     (fotografo_id, usuario_id, foto_url) 
+                     (fotografo_id, id_usuario, foto_url) 
                      VALUES ($1, $2, $3) RETURNING *`,
-                    [solicitud.fotografo_id, solicitud.usuario_id, fotoUrl]
+                    [solicitud.fotografo_id, solicitud.id_usuario, fotoUrl]
                 );
 
                 // Marcar como completada
@@ -219,7 +219,7 @@ export function initFotoInmediata(io, usuariosConectados) {
                 );
 
                 // Notificar a usuario
-                io.to(`usuario:${solicitud.usuario_id}`).emit('foto-guardada', {
+                io.to(`usuario:${solicitud.id_usuario}`).emit('foto-guardada', {
                     solicitudId: solicitudId,
                     fotoUrl: fotoUrl,
                     mensaje: '¡Foto guardada exitosamente!'

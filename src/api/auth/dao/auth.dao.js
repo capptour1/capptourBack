@@ -185,7 +185,7 @@ const register_user_photographer = async (name, email, password, transaction) =>
 const register_photographer_v2 = async (user_id, experience_id, rol_id, transaction) => {
   try {
     const result = await sequelize.query(
-      `INSERT INTO fotografo.fotografos (usuario_id, id_experiencia, id_rol)
+      `INSERT INTO fotografo.fotografos (id_usuario, id_experiencia, id_rol)
        VALUES (:user_id, :experience_id, :rol_id)
        RETURNING *;`,
       {
@@ -258,7 +258,7 @@ const register_gallery_images_v2 = async (imagesData, transaction) => {
 const find_photographer_by_user_id = async (user_id) => {
   try {
     const result = await sequelize.query(
-      `SELECT * FROM fotografo.fotografos WHERE usuario_id = cast(:user_id AS int);`,
+      `SELECT * FROM fotografo.fotografos WHERE id_usuario = cast(:user_id AS int);`,
       { replacements: { user_id }, type: QueryTypes.SELECT }
     );
     return result.length > 0 ? result[0] : null;

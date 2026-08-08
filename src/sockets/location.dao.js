@@ -44,7 +44,7 @@ const updatePhotographerLocation = async (photographerId, lat, lng) => {
  */
 const getPhotographerIdByUserId = async (userId) => {
     const result = await sequelize.query(
-        `SELECT id FROM fotografo.fotografos WHERE usuario_id = cast(:userId AS int) LIMIT 1;`,
+        `SELECT id FROM fotografo.fotografos WHERE id_usuario = cast(:userId AS int) LIMIT 1;`,
         {
             replacements: { userId },
             type: QueryTypes.SELECT

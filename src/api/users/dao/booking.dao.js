@@ -56,12 +56,12 @@ const getBookingsByUserId = async (id_usuario) => {
             ON f.id = r.id_fotografo
 
         INNER JOIN auth.usuarios u
-            ON u.id = f.usuario_id
+            ON u.id = f.id_usuario
 
         INNER JOIN fotografo.tipo_moneda tm
             ON tm.id_moneda = rs.id_moneda
 
-        WHERE r.id_cliente = CAST(:id_usuario AS bigint)
+        --WHERE r.id_cliente = CAST(:id_usuario AS bigint)
 
         ORDER BY r.fec_creacion DESC;
         `,

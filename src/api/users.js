@@ -191,13 +191,13 @@ router.post('/register/fotografo', upload.single('hoja_vida'), async (req, res) 
       [nombre, email, password, rol_id, telefono, codigo]
     );
 
-    const usuario_id = userResult.rows[0].id;
+    const id_usuario = userResult.rows[0].id;
 
     // 2) Fotógrafo (guardas nombre del archivo; si usas storage, aquí subirías y guardarías la URL)
     await client.query(
-      `INSERT INTO fotografo.fotografos (usuario_id, hoja_vida, descripcion, tarifas)
+      `INSERT INTO fotografo.fotografos (id_usuario, hoja_vida, descripcion, tarifas)
        VALUES ($1, $2, $3, $4)`,
-      [usuario_id, req.file.originalname, descripcion || null, tarifas || null]
+      [id_usuario, req.file.originalname, descripcion || null, tarifas || null]
     );
 
     await client.query('COMMIT');
@@ -227,7 +227,7 @@ router.post('/info', async (req, res) => {
       `SELECT u.id, u.nombre_completo, u.email, u.telefono, u.rol_id,
               f.descripcion, f.tarifas, f.hoja_vida
        FROM auth.usuarios u
-       LEFT JOIN fotografo.fotografos f ON u.id = f.usuario_id
+       LEFT JOIN fotografo.fotografos f ON u.id = f.id_usuario
        WHERE u.id = $1`,
       [userId]
     );

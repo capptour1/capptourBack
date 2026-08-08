@@ -33,7 +33,7 @@ export const uploadPhoto = async (req, res) => {
 
         // Obtener ID del fotógrafo
         const photographerResult = await db.query(
-            'SELECT id FROM fotografo.fotografos WHERE usuario_id = $1',
+            'SELECT id FROM fotografo.fotografos WHERE id_usuario = $1',
             [userId]
         );
         const photographerId = photographerResult.rows[0]?.id;
@@ -87,7 +87,7 @@ export const getPhotosByPhotographer = async (req, res) => {
 
         // get id photographer from auth.usuarios
         const userResult = await db.query(
-            'SELECT id FROM fotografo.fotografos WHERE usuario_id = $1',
+            'SELECT id FROM fotografo.fotografos WHERE id_usuario = $1',
             [userId]
         );
 
@@ -144,7 +144,7 @@ export const deletePhoto = async (req, res) => {
 
         // Verificar si la foto existe y pertenece al fotógrafo
         const photoResult = await db.query(
-            'SELECT id FROM fotografo.photos WHERE id = $1 AND photographer_id = (SELECT id FROM fotografo.fotografos WHERE usuario_id = $2)',
+            'SELECT id FROM fotografo.photos WHERE id = $1 AND photographer_id = (SELECT id FROM fotografo.fotografos WHERE id_usuario = $2)',
             [photoId, userId]
         );
 

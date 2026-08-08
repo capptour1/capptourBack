@@ -11,7 +11,7 @@ const getExplorerImages = async () => {
             FROM fotografo.servicios s 
             INNER JOIN fotografo.imagen_servicio t ON s.id_servicio = t.id_servicio
             INNER JOIN fotografo.fotografos f ON s.id_fotografo = f.id
-            INNER JOIN auth.usuarios u ON u.id = f.usuario_id
+            INNER JOIN auth.usuarios u ON u.id = f.id_usuario
             LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo
             ;
         `;

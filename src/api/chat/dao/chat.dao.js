@@ -38,7 +38,7 @@ const getConversationById = async (conversationId) => {
       u.nombre_completo AS nombre_cliente,
       u.foto_perfil AS foto_cliente,
       c.id_fotografo,
-      f.usuario_id AS usuario_fotografo_id,
+      f.id_usuario AS usuario_fotografo_id,
       u2.nombre_completo AS nombre_fotografo,
       c.id_fotografo,
       u2.nombre_completo AS nombre_fotografo,
@@ -49,7 +49,7 @@ const getConversationById = async (conversationId) => {
     FROM chat.conversacion c
     JOIN auth.usuarios u ON c.id_cliente = u.id
     JOIN fotografo.fotografos f ON c.id_fotografo = f.id
-    JOIN auth.usuarios u2 ON f.usuario_id = u2.id
+    JOIN auth.usuarios u2 ON f.id_usuario = u2.id
     WHERE c.id_chat = CAST(:conversationId AS INT)
     `,
     {
@@ -199,7 +199,7 @@ const getInfoConversationById = async (conversationId, transaction) => {
     FROM chat.conversacion c
     JOIN auth.usuarios u ON c.id_cliente = u.id
     JOIN fotografo.fotografos f ON c.id_fotografo = f.id
-    JOIN auth.usuarios u2 ON f.usuario_id = u2.id
+    JOIN auth.usuarios u2 ON f.id_usuario = u2.id
     WHERE c.id_chat = CAST(:conversationId AS INT)
     `,
     {
@@ -223,7 +223,7 @@ const getChatListClient = async (clientId) => {
     FROM chat.conversacion c
     JOIN auth.usuarios u ON c.id_cliente = u.id
     JOIN fotografo.fotografos f ON c.id_fotografo = f.id
-    JOIN auth.usuarios u2 ON f.usuario_id = u2.id
+    JOIN auth.usuarios u2 ON f.id_usuario = u2.id
     WHERE c.id_cliente = :clientId
     `,
     {
@@ -246,7 +246,7 @@ const getChatListPhotographer = async (photographerId) => {
     FROM chat.conversacion c
     JOIN auth.usuarios u ON c.id_cliente = u.id
     JOIN fotografo.fotografos f ON c.id_fotografo = f.id
-    JOIN auth.usuarios u2 ON f.usuario_id = u2.id
+    JOIN auth.usuarios u2 ON f.id_usuario = u2.id
     WHERE c.id_fotografo = :photographerId
     `,
     {

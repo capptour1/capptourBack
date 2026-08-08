@@ -198,29 +198,38 @@ const deleteImageDelivery = async (req, res) => {
 
 
 const getServices = async (req, res) => {
-  try {
-    console.log('Get services controller called', req.body);
-    const { id_usuario } = req.body;
+    try {
+        const { id_usuario } = req.body;
 
-    const userInfo = await PhotographerDAO.getInfoPhotoDbById(id_usuario);
-    if (!userInfo) {
-      throw new AppError('Fotógrafo no encontrado', 404);
+        const [services, gallery] = await Promise.all([
+            PhotographerDAO.getInfoServices(id_usuario),
+            PhotographerDAO.getInfoGallery(id_usuario)
+        ]);
+
+        const galleryMap = new Map();
+
+        for (const image of gallery) {
+            if (!galleryMap.has(image.id_servicio)) {
+                galleryMap.set(image.id_servicio, []);
+            }
+
+            galleryMap.get(image.id_servicio).push(image);
+        }
+
+        for (const service of services) {
+            service.imagenes =
+                galleryMap.get(service.id_servicio) || [];
+        }
+
+        return successResponse(
+            res,
+            services,
+            'Servicios obtenidos correctamente'
+        );
     }
-
-    let servicios = await PhotographerDAO.getInfoServices(userInfo.id_fotografo);
-    const galeria = await PhotographerDAO.getInfoGallery(userInfo.id_fotografo);
-
-
-    for (let servicio of servicios) {
-      servicio.imagenes = galeria.filter(item => item.id_servicio === servicio.id_servicio);
+    catch (error) {
+        return errorResponse(res, error);
     }
-
-
-    return successResponse(res, servicios, 'Servicios obtenidos correctamente');
-  }
-  catch (error) {
-    return errorResponse(res, error);
-  }
 };
 
 const addService = async (req, res) => {

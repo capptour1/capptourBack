@@ -61,15 +61,15 @@ router.post('/upload', upload.single('foto'), async (req, res) => {
 
         // ✅ Guardar en PostgreSQL (solo la referencia)
         const query = `
-      INSERT INTO fotografo.fotos_inmediatas (fotografo_id, usuario_id, foto_url)
+      INSERT INTO fotografo.fotos_inmediatas (fotografo_id, id_usuario, foto_url)
       VALUES ($1, $2, $3) 
       RETURNING *
     `;
 
-        const usuario_id = req.user?.userId;
-        console.log('👤 Usuario ID:', usuario_id);
+        const id_usuario = req.user?.userId;
+        console.log('👤 Usuario ID:', id_usuario);
 
-        const result = await db.query(query, [fotografo_id, usuario_id, fotoUrl]);
+        const result = await db.query(query, [fotografo_id, id_usuario, fotoUrl]);
         console.log('💾 Foto guardada en BD:', result.rows[0]);
 
         // ✅ Respuesta exitosa
