@@ -8,91 +8,158 @@ const createTransaction = async () => {
 }
 
 const getBookingsByUserId = async (id_usuario) => {
-    const bookings = await sequelize.query(
+
+    return sequelize.query(
         `
         SELECT
-        r.id_reserva, r.fecha, r.hora_inicio, r.hora_fin, r.estado, r.fec_creacion,
-        r.latitud, r.longitud,
-        r.id_cliente,
-        f.id as id_fotografo, u.nombre_completo as nombre_fotografo, 
-        u.foto_perfil as thumbnail_fotografo, 
-        s.id_servicio, s.nombre as nombre_servicio, s.descripcion as descripcion_servicio,
-        s.precio_hora, s.editadas, s.no_editadas,
-        tm.codigo
+            r.id_cliente,
+            r.id_reserva,
+            r.fecha,
+            r.hora_inicio,
+            r.hora_fin,
+            r.estado,
+            r.fec_creacion,
+            r.latitud,
+            r.longitud,
+            r.notas,
+
+            f.id AS id_fotografo,
+
+            u.nombre_completo AS nombre_fotografo,
+            u.foto_perfil AS thumbnail_fotografo,
+
+            rs.id_reserva_servicio,
+            rs.origen,
+            rs.id_origen,
+            rs.id_tarifa,
+
+            rs.nombre AS nombre_servicio,
+            rs.descripcion AS descripcion_servicio,
+
+            rs.cantidad,
+
+            rs.editadas,
+            rs.no_editadas,
+
+            rs.precio_base,
+            rs.precio_minimo,
+            rs.precio_final,
+
+            tm.codigo AS moneda
+
         FROM reserva.reserva r
-        INNER JOIN fotografo.servicios s
-            ON r.id_servicio = s.id_servicio  
+
+        INNER JOIN reserva.reserva_servicio rs
+            ON rs.id_reserva = r.id_reserva
+
         INNER JOIN fotografo.fotografos f
-            ON s.id_fotografo = f.id
-        INNER JOIN auth.usuarios u 
-            ON f.usuario_id = u.id
-        INNER JOIN auth.usuarios c 
-            ON r.id_cliente = c.id
+            ON f.id = r.id_fotografo
+
+        INNER JOIN auth.usuarios u
+            ON u.id = f.usuario_id
+
         INNER JOIN fotografo.tipo_moneda tm
-            ON s.id_moneda = tm.id_moneda
-        WHERE c.id = cast(:id_usuario AS int);
-         `,
+            ON tm.id_moneda = rs.id_moneda
+
+        WHERE r.id_cliente = CAST(:id_usuario AS bigint)
+
+        ORDER BY r.fec_creacion DESC;
+        `,
         {
-            replacements: { id_usuario },
-            type: QueryTypes.SELECT,
+            replacements: {
+                id_usuario
+            },
+            type: QueryTypes.SELECT
         }
     );
-    return bookings;
-}
+};
 
-const getDeliveryInfoByBookingId = async (id_reserva) => {
-    const deliveryInfo = await sequelize.query(
+const getDeliveriesByBookingIds = async (bookingIds) => {
+
+    return sequelize.query(
         `
-        SELECT id_entrega, id_reserva, link_gdrive, link_icloud, link_airdrop, link_microsoft
-        FROM reserva.entrega d
-        WHERE d.id_reserva = cast(:id_reserva AS int) 
-        AND d.estado = 'A';
-         `,
+        SELECT
+
+            id_entrega,
+            id_reserva,
+
+            link_gdrive,
+            link_icloud,
+            link_airdrop,
+            link_microsoft
+
+        FROM reserva.entrega
+
+        WHERE estado='A'
+        AND id_reserva IN (:bookingIds);
+        `,
         {
-            replacements: { id_reserva },
-            type: QueryTypes.SELECT,
+            replacements: {
+                bookingIds
+            },
+            type: QueryTypes.SELECT
         }
     );
-    return deliveryInfo[0];
-}
+};
 
-const getImagesDeliveryById = async (id_entrega) => {
-    const images = await sequelize.query(
+const getImagesDeliveryByIds = async (deliveryIds) => {
+
+    return sequelize.query(
         `
-        SELECT id_imagen, thumbnail, id_entrega
-        FROM reserva.imagenes_entrega i
-        WHERE i.id_entrega = cast(:id_entrega AS int);
-         `,
+        SELECT
+
+            id_imagen,
+            id_entrega,
+            thumbnail
+
+        FROM reserva.imagenes_entrega
+
+        WHERE id_entrega IN (:deliveryIds)
+
+        ORDER BY id_imagen;
+        `,
         {
-            replacements: { id_entrega },
-            type: QueryTypes.SELECT,
+            replacements: {
+                deliveryIds
+            },
+            type: QueryTypes.SELECT
         }
     );
-    return images;
-}
+};
 
+const getRatingsByBookingIds = async (bookingIds) => {
 
-const getRatingByBookingId = async (id_reserva) => {
-    const rating = await sequelize.query(
-        `SELECT id_calificacion, id_reserva, puntualidad, calidad, profesionalismo, relacion, recomendacion, comentario
-         FROM fotografo.foto_calificacion
-         WHERE id_reserva = cast(:id_reserva AS int);`,
+    return sequelize.query(
+        `
+        SELECT
+
+            id_calificacion,
+            id_reserva,
+
+            puntualidad,
+            calidad,
+            profesionalismo,
+            relacion,
+            recomendacion,
+            comentario
+
+        FROM fotografo.foto_calificacion
+
+        WHERE id_reserva IN (:bookingIds);
+        `,
         {
-            replacements: { id_reserva },
-            type: QueryTypes.SELECT,
+            replacements: {
+                bookingIds
+            },
+            type: QueryTypes.SELECT
         }
     );
-    return rating[0];
-}
-
-     
-
-
+};
 
 export default {
     createTransaction,
     getBookingsByUserId,
-    getDeliveryInfoByBookingId,
-    getImagesDeliveryById,
-    getRatingByBookingId,
+    getDeliveriesByBookingIds,
+    getImagesDeliveryByIds,
+    getRatingsByBookingIds,
 };

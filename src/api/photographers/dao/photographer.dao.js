@@ -35,26 +35,66 @@ const getInfoPhotoDbById = async (id_usuario) => {
 
 const getInfoSessionPhotoDbById = async (id_usuario) => {
     const result = await sequelize.query(
-        `SELECT 
-            r.id_reserva, r.fecha, r.hora_inicio, r.hora_fin, r.estado, r.fec_creacion,
-            r.latitud, r.longitud,
-            f.id as id_fotografo, 
-            c.id as id_cliente, c.nombre_completo as nombre_cliente,
-            c.foto_perfil as thumbnail_cliente, 
-            s.id_servicio, s.nombre as nombre_servicio, s.descripcion as descripcion_servicio,
-            s.precio_hora, s.editadas, s.no_editadas,
-            tm.codigo
-        FROM fotografo.fotografos f
-        INNER JOIN auth.usuarios u ON f.usuario_id = u.id
-        INNER JOIN fotografo.servicios s ON f.id = s.id_fotografo
-        INNER JOIN reserva.reserva r ON r.id_servicio = s.id_servicio
-        INNER JOIN auth.usuarios c ON r.id_cliente = c.id
-        INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda
-        WHERE f.usuario_id = cast(:id_usuario AS int);
         `
-        ,
+        SELECT
+            r.id_reserva,
+            r.id_fotografo,
+            r.fecha,
+            r.hora_inicio,
+            r.hora_fin,
+            r.estado,
+            r.notas,
+            r.fec_creacion,
+            r.latitud,
+            r.longitud,
+
+            c.id                      AS id_cliente,
+            c.nombre_completo         AS nombre_cliente,
+            c.foto_perfil             AS thumbnail_cliente,
+
+            rs.id_reserva_servicio,
+            rs.origen,
+            rs.id_origen,
+            rs.id_tarifa,
+
+            rs.nombre                 AS nombre_servicio,
+            rs.descripcion            AS descripcion_servicio,
+
+            rs.cantidad,
+
+            rs.editadas,
+            rs.no_editadas,
+
+            rs.precio_base,
+            rs.precio_minimo,
+            rs.precio_final,
+
+            tm.id_moneda,
+            tm.codigo,
+            tm.simbolo
+
+        FROM reserva.reserva r
+
+        INNER JOIN fotografo.fotografos f
+            ON f.id = r.id_fotografo
+
+        INNER JOIN auth.usuarios c
+            ON c.id = r.id_cliente
+
+        INNER JOIN reserva.reserva_servicio rs
+            ON rs.id_reserva = r.id_reserva
+
+        INNER JOIN fotografo.tipo_moneda tm
+            ON tm.id_moneda = rs.id_moneda
+
+        WHERE f.usuario_id = CAST(:id_usuario AS int)
+
+        ORDER BY r.fecha DESC,
+                r.hora_inicio DESC,
+                r.fec_creacion DESC;
+        `,
         {
-            replacements: { id_usuario: id_usuario },
+            replacements: { id_usuario },
             type: QueryTypes.SELECT
         }
     );
@@ -324,27 +364,27 @@ const addService = async (service, transaction) => {
 
 
 const addGalleryImages = async (imagesData, transaction) => {
-  try {
-    for (let i = 0; i < imagesData.length; i++) {
-      const item = imagesData[i];
-      await sequelize.query(
-        `INSERT INTO fotografo.imagen_servicio (id_servicio, imagen, thumbnail)
+    try {
+        for (let i = 0; i < imagesData.length; i++) {
+            const item = imagesData[i];
+            await sequelize.query(
+                `INSERT INTO fotografo.imagen_servicio (id_servicio, imagen, thumbnail)
         VALUES (:id_servicio, :imagen, :thumbnail)`,
-        {
-          replacements: {
-            id_servicio: item.id_servicio,
-            imagen: item.imagen.buffer,
-            thumbnail: item.thumbnail
-          },
-          type: QueryTypes.INSERT,
-          transaction
+                {
+                    replacements: {
+                        id_servicio: item.id_servicio,
+                        imagen: item.imagen.buffer,
+                        thumbnail: item.thumbnail
+                    },
+                    type: QueryTypes.INSERT,
+                    transaction
+                }
+            );
         }
-      );
+    } catch (error) {
+        console.error('Error registering gallery images:', error);
+        throw new Error('Error al registrar las imágenes de la galería');
     }
-  } catch (error) {
-    console.error('Error registering gallery images:', error);
-    throw new Error('Error al registrar las imágenes de la galería');
-  }
 };
 
 

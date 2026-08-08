@@ -4,8 +4,6 @@ import { QueryTypes } from 'sequelize';
 
 
 
-// NUEVO DAO PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL
-
 const getTransaction = async () => {
     return await sequelize.transaction({ autocommit: false });
 }
@@ -24,22 +22,50 @@ const get_monedas = async () => {
 
 const getInfoPhotoById = async (photographerId) => {
     const result = await sequelize.query(
-        `SELECT f.id AS id_fotografo, 
-            u.nombre_completo as nombre, u.foto_perfil as thumbnail, u.rol_id as id_rol, u.fecha_nacimiento,
-            f.descripcion AS biografia, f.herramientas,
-            5 AS rating, 120 AS reservas, TRUE AS favorito,
+        `SELECT
+            f.id AS id_fotografo,
+            u.nombre_completo AS nombre,
+            u.foto_perfil AS thumbnail,
+            u.rol_id AS id_rol,
+            u.fecha_nacimiento,
+
+            f.descripcion AS biografia,
+            f.herramientas,
+
+            5 AS rating,
+            120 AS reservas,
+            TRUE AS favorito,
+
             CONCAT(p.codigo_telefono, ' ', ut.telefono) AS celular,
-            l.latitud, l.longitud,
+
+            l.latitud,
+            l.longitud,
+
             te.descripcion AS experiencia,
             tr.descripcion AS rol
-            FROM fotografo.fotografos f 
-            INNER JOIN auth.usuarios u ON f.usuario_id = u.id
-            LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
-            INNER JOIN fotografo.tipo_experiencia te ON f.id_experiencia = te.id_experiencia 
-            INNER JOIN fotografo.tipo_rol tr ON f.id_rol = tr.id_rol 
-            LEFT JOIN auth.usuario_telefono ut ON u.id = ut.id_usuario
-            LEFT JOIN public.paises p ON ut.id_pais = p.id_pais
-            WHERE f.id = cast(:id_fotografo AS int);`,
+
+        FROM fotografo.fotografos f
+
+        INNER JOIN auth.usuarios u
+            ON u.id = f.usuario_id
+
+        LEFT JOIN fotografo.localizacion l
+            ON l.id_fotografo = f.id
+
+        INNER JOIN fotografo.tipo_experiencia te
+            ON te.id_experiencia = f.id_experiencia
+
+        INNER JOIN fotografo.tipo_rol tr
+            ON tr.id_rol = f.id_rol
+
+        LEFT JOIN auth.usuario_telefono ut
+            ON ut.id_usuario = u.id
+
+        LEFT JOIN public.paises p
+            ON p.id_pais = ut.id_pais
+
+        WHERE f.id = :id_fotografo
+        AND f.is_active = true;`,
         {
             replacements: { id_fotografo: photographerId },
             type: QueryTypes.SELECT
@@ -50,10 +76,29 @@ const getInfoPhotoById = async (photographerId) => {
 
 const getInfoServicesByPhotographerId = async (photographerId) => {
     const result = await sequelize.query(
-        `SELECT s.id_servicio, s.nombre, s.descripcion, s.precio_hora, s.editadas, s.no_editadas, tm.id_moneda, tm.codigo, s.id_fotografo 
-            FROM fotografo.servicios s 
-            INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda 
-            WHERE s.id_fotografo = cast(:id_fotografo AS int);`,
+        `
+        SELECT
+            s.id_servicio,
+            s.nombre,
+            s.descripcion,
+            s.precio_hora,
+            s.editadas,
+            s.no_editadas,
+            tm.id_moneda,
+            tm.codigo,
+            tm.simbolo,
+            s.id_fotografo
+
+        FROM fotografo.servicios s
+
+        INNER JOIN fotografo.tipo_moneda tm
+            ON tm.id_moneda = s.id_moneda
+
+        WHERE s.id_fotografo = :id_fotografo
+        AND s.estado = 'A'
+
+        ORDER BY s.fec_creacion DESC;
+        `,
         {
             replacements: { id_fotografo: photographerId },
             type: QueryTypes.SELECT
@@ -64,10 +109,21 @@ const getInfoServicesByPhotographerId = async (photographerId) => {
 
 const getInfoGalleryByPhotographerId = async (photographerId) => {
     const result = await sequelize.query(
-        `SELECT s.id_servicio, t.id_imagen, t.thumbnail 
-            FROM fotografo.servicios s 
-            INNER JOIN fotografo.imagen_servicio t ON s.id_servicio = t.id_servicio 
-           WHERE s.id_fotografo = cast(:id_fotografo AS int);`,
+        `
+        SELECT
+            t.id_imagen,
+            t.id_servicio,
+            t.thumbnail
+
+        FROM fotografo.imagen_servicio t
+
+        INNER JOIN fotografo.servicios s
+            ON s.id_servicio = t.id_servicio
+
+        WHERE s.id_fotografo = :id_fotografo
+
+        ORDER BY t.id_imagen;
+        `,
         {
             replacements: { id_fotografo: photographerId },
             type: QueryTypes.SELECT
@@ -313,68 +369,281 @@ const getFullImagesByBookingId = async (id_reserva) => {
 }
 
 const getImageById = async (id_imagen) => {
-  const result = await sequelize.query(
-    `SELECT imagen FROM reserva.imagenes_entrega
+    const result = await sequelize.query(
+        `SELECT imagen FROM reserva.imagenes_entrega
      WHERE id_imagen = :id_imagen`,
-    {
-      replacements: { id_imagen },
-      type: QueryTypes.SELECT,
-    }
-  );
+        {
+            replacements: { id_imagen },
+            type: QueryTypes.SELECT,
+        }
+    );
 
-  return result[0]?.imagen;
+    return result[0]?.imagen;
 };
 
 const createInstantSession = async (data, transaction) => {
-    const { id_cliente, id_fotografo, id_servicio, latitud, longitud } = data;
 
-    // Si no se proporcionó servicio, tomar el primero activo del fotógrafo
-    let serviceId = id_servicio;
-    if (!serviceId) {
-        const services = await sequelize.query(
-            `SELECT id_servicio FROM fotografo.servicios 
-             WHERE id_fotografo = cast(:id_fotografo AS int) AND estado = 'A' 
-             ORDER BY fec_creacion DESC LIMIT 1;`,
-            {
-                replacements: { id_fotografo },
-                type: QueryTypes.SELECT,
-                transaction
-            }
-        );
-        if (services.length === 0) {
-            throw new Error('El colaborador no tiene servicios activos');
+    const {
+        id_cliente,
+        id_fotografo,
+        latitud,
+        longitud
+    } = data;
+
+    const idCobertura = await obtenerCoberturaFotografo(
+        id_fotografo,
+        transaction
+    );
+
+    const servicio = await obtenerServicioGlobal(
+        id_fotografo,
+        transaction
+    );
+
+    const tarifa = await obtenerTarifaServicio(
+        servicio.id_servicio_global,
+        idCobertura,
+        transaction
+    );
+
+    const reserva = await crearReserva(
+        {
+            id_cliente,
+            id_fotografo,
+            latitud,
+            longitud
+        },
+        transaction
+    );
+
+    await crearReservaServicio(
+        reserva.id_reserva,
+        servicio,
+        tarifa,
+        transaction
+    );
+
+    return reserva;
+};
+
+const obtenerCoberturaFotografo = async (
+    idFotografo,
+    transaction
+) => {
+
+    const cobertura = await sequelize.query(
+        `
+        SELECT id_cobertura
+        FROM catalogo.cobertura
+        WHERE codigo_iso='CO'
+        LIMIT 1;
+        `,
+        {
+            type: QueryTypes.SELECT,
+            transaction
         }
-        serviceId = services[0].id_servicio;
+    );
+
+    if (!cobertura.length) {
+        throw new AppError(
+            'No existe cobertura configurada.',
+            400
+        );
     }
 
+    return cobertura[0].id_cobertura;
+};
+
+const obtenerServicioGlobal = async (
+    idFotografo,
+    transaction
+) => {
+
+    const servicio = await sequelize.query(
+        `
+        SELECT
+            id_servicio_global,
+            nombre,
+            descripcion
+        FROM catalogo.servicio_global
+        WHERE estado='A'
+        ORDER BY id_servicio_global
+        LIMIT 1;
+        `,
+        {
+            type: QueryTypes.SELECT,
+            transaction
+        }
+    );
+
+    if (!servicio.length) {
+        throw new AppError(
+            'No existe un servicio global disponible.',
+            400
+        );
+    }
+
+    return servicio[0];
+};
+
+const obtenerTarifaServicio = async (
+    idServicioGlobal,
+    idCobertura,
+    transaction
+) => {
+
+    const tarifa = await sequelize.query(
+        `
+        SELECT
+            t.id_tarifa,
+            t.precio_base,
+            t.precio_minimo,
+            t.id_moneda
+        FROM catalogo.servicio_global_tarifa t
+        WHERE
+            t.id_servicio_global = :idServicioGlobal
+            AND t.id_cobertura = :idCobertura
+            AND t.estado='A'
+        LIMIT 1;
+        `,
+        {
+            replacements: {
+                idServicioGlobal,
+                idCobertura
+            },
+            type: QueryTypes.SELECT,
+            transaction
+        }
+    );
+
+    if (!tarifa.length) {
+        throw new AppError(
+            'No existe una tarifa para la cobertura.',
+            400
+        );
+    }
+
+    return tarifa[0];
+};
+
+const crearReserva = async (
+    data,
+    transaction
+) => {
+
+    const {
+        id_cliente,
+        id_fotografo,
+        latitud,
+        longitud
+    } = data;
+
     const now = new Date();
-    const fecha = now.toISOString().split('T')[0];
-    const hora_inicio = `${now.getHours()}:${now.getMinutes()}`;
-    const hora_fin_date = new Date(now.getTime() + 60 * 60 * 1000); // +1 hora
-    const hora_fin = `${hora_fin_date.getHours()}:${hora_fin_date.getMinutes()}`;
+
+    const fecha = now.toISOString().substring(0, 10);
 
     const result = await sequelize.query(
-        `INSERT INTO reserva.reserva (id_cliente, id_servicio, fecha, hora_inicio, hora_fin, longitud, latitud, estado, notas)
-         VALUES (cast(:id_cliente AS int), cast(:id_servicio AS int), cast(:fecha AS date), 
-                 cast(:hora_inicio AS time), cast(:hora_fin AS time), 
-                 cast(:longitud AS float), cast(:latitud AS float), 'C', 'Sesión inmediata vía QR')
-         RETURNING id_reserva;`,
+        `
+        INSERT INTO reserva.reserva
+        (
+            id_cliente,
+            id_fotografo,
+            fecha,
+            hora_inicio,
+            hora_fin,
+            longitud,
+            latitud,
+            estado,
+            notas
+        )
+        VALUES
+        (
+            :id_cliente,
+            :id_fotografo,
+            :fecha,
+            NULL,
+            NULL,
+            :longitud,
+            :latitud,
+            'A',
+            'Sesión inmediata vía QR'
+        )
+        RETURNING id_reserva;
+        `,
         {
-            replacements: { 
-                id_cliente, 
-                id_servicio: serviceId, 
-                fecha, 
-                hora_inicio, 
-                hora_fin,
-                longitud: longitud || null, 
-                latitud: latitud || null 
+            replacements: {
+                id_cliente,
+                id_fotografo,
+                fecha,
+                longitud: longitud || null,
+                latitud: latitud || null
             },
             type: QueryTypes.INSERT,
             transaction
         }
     );
+
     return result[0][0];
 };
+
+const crearReservaServicio = async (
+    idReserva,
+    servicio,
+    tarifa,
+    transaction
+) => {
+
+    await sequelize.query(
+        `
+        INSERT INTO reserva.reserva_servicio
+        (
+            id_reserva,
+            id_origen,
+            id_tarifa,
+            origen,
+            nombre,
+            descripcion,
+            cantidad,
+            editadas,
+            no_editadas,
+            precio_base,
+            precio_minimo,
+            precio_final,
+            id_moneda
+        )
+        VALUES
+        (
+            :idReserva,
+            :idServicioGlobal,
+            :idTarifa,
+            'G',
+            :nombre,
+            :descripcion,
+            1,
+            0,
+            0,
+            :precioBase,
+            :precioMinimo,
+            :precioBase,
+            :idMoneda
+        );
+        `,
+        {
+            replacements: {
+                idReserva,
+                idServicioGlobal: servicio.id_servicio_global,
+                idTarifa: tarifa.id_tarifa,
+                nombre: servicio.nombre,
+                descripcion: servicio.descripcion,
+                precioBase: tarifa.precio_base,
+                precioMinimo: tarifa.precio_minimo,
+                idMoneda: tarifa.id_moneda
+            },
+            transaction
+        }
+    );
+};
+
 
 export default {
     getTransaction,

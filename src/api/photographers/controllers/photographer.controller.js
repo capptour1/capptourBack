@@ -12,27 +12,32 @@ const { createThumbnail } = media;
 
 
 const getInfoPhotoDbById = async (req, res) => {
-  try {
-    const { id_usuario } = req.body;
-    console.log('Get info photo by ID controller called', req.body);
+    try {
+        const { id_usuario } = req.body;
 
-    const photographerInfo = await PhotographerDAO.getInfoPhotoDbById(id_usuario);
-    const sessionsInfo = await PhotographerDAO.getInfoSessionPhotoDbById(id_usuario);
+        console.log('Get info photo by ID controller called', req.body);
 
-    if (!photographerInfo) {
-      throw new AppError('Fotógrafo no encontrado', 404);
+        const [photographerInfo, sessionsInfo] = await Promise.all([
+            PhotographerDAO.getInfoPhotoDbById(id_usuario),
+            PhotographerDAO.getInfoSessionPhotoDbById(id_usuario)
+        ]);
+
+        if (!photographerInfo) {
+            throw new AppError('Fotógrafo no encontrado', 404);
+        }
+
+        return successResponse(
+            res,
+            {
+                ...photographerInfo,
+                sessions: sessionsInfo
+            },
+            'Información del fotógrafo obtenida correctamente'
+        );
+
+    } catch (error) {
+        return errorResponse(res, error);
     }
-
-    const result = {
-      ...photographerInfo,
-      sessions: sessionsInfo
-    };
-
-    return successResponse(res, result, 'Información del fotógrafo obtenida correctamente');
-  }
-  catch (error) {
-    return errorResponse(res, error);
-  }
 };
 
 const changeStatusSession = async (req, res) => {
@@ -232,15 +237,15 @@ const addService = async (req, res) => {
     }
 
     const dataService = {
-        nombre: servicio.name,
-        descripcion: servicio.description,
-        precio_hora: servicio.price_hour,
-        id_moneda: servicio.currency_id,
-        editadas: servicio.edited,
-        no_editadas: servicio.unedited,
-        id_fotografo: userInfo.id_fotografo,
-        id_ubicacion: servicio.id_ubicacion || null
-      };
+      nombre: servicio.name,
+      descripcion: servicio.description,
+      precio_hora: servicio.price_hour,
+      id_moneda: servicio.currency_id,
+      editadas: servicio.edited,
+      no_editadas: servicio.unedited,
+      id_fotografo: userInfo.id_fotografo,
+      id_ubicacion: servicio.id_ubicacion || null
+    };
 
 
     const insertedService = await photographerDao.addService(dataService, t);

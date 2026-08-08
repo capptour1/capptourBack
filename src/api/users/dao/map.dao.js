@@ -37,10 +37,7 @@ const searchPhotographers = async (lat, lng) => {
             te.descripcion AS experiencia,
             te.id_experiencia as id_experiencia,
             tr.descripcion AS rol,
-            tr.id_rol as id_rol,
-            fs.precio_hora,
-            fs.id_moneda,
-            fs.codigo as moneda_codigo
+            tr.id_rol as id_rol
 
         FROM fotografo.fotografos f
         INNER JOIN auth.usuarios u 
@@ -51,18 +48,6 @@ const searchPhotographers = async (lat, lng) => {
             ON f.id_experiencia = te.id_experiencia
         INNER JOIN fotografo.tipo_rol tr
             ON f.id_rol = tr.id_rol
-        LEFT JOIN LATERAL (
-            SELECT s.precio_hora, tm.id_moneda, tm.codigo
-            FROM fotografo.servicios s
-            INNER JOIN fotografo.tipo_moneda tm ON s.id_moneda = tm.id_moneda
-            WHERE s.id_fotografo = f.id
-            AND s.estado = 'A'
-            ORDER BY 
-                CASE WHEN s.id_ubicacion IS NOT NULL THEN 0 ELSE 1 END,
-                s.fec_creacion DESC
-            LIMIT 1
-        ) fs ON TRUE
-
         WHERE l.latitud BETWEEN :minLat AND :maxLat
         AND l.longitud BETWEEN :minLng AND :maxLng
         AND f.is_active = true
@@ -98,6 +83,68 @@ const searchPhotographers = async (lat, lng) => {
     return photographers;
 };
 
+
+const getServicesByPhotographerId = async (photographerId) => {
+    const query = `
+        SELECT
+            s.id_servicio,
+            s.id_fotografo,
+            s.nombre_servicio,
+            s.descripcion,
+            s.precio,
+            s.duracion,
+            s.id_moneda,
+            tm.codigo,
+            tm.simbolo
+        FROM fotografo.servicios s
+        INNER JOIN fotografo.tipo_moneda tm
+            ON s.id_moneda = tm.id_moneda
+        WHERE s.id_fotografo = :photographerId
+        AND s.estado = 'A';
+    `;
+
+    const services = await sequelize.query(query, {
+        replacements: { photographerId },
+        type: QueryTypes.SELECT
+    });
+
+    return services;
+}
+
+const getServicesByPhotographerIds = async (photographerIds) => {
+
+    if (!photographerIds.length) {
+        return [];
+    }
+
+    const query = `
+        SELECT
+            s.id_fotografo,
+            s.id_servicio,
+            s.nombre,
+            s.descripcion,
+            s.precio_hora,
+            s.editadas,
+            s.no_editadas,
+            s.id_moneda,
+            tm.codigo,
+            tm.simbolo
+        FROM fotografo.servicios s
+        INNER JOIN fotografo.tipo_moneda tm
+            ON s.id_moneda = tm.id_moneda
+        WHERE s.estado = 'A'
+        AND s.id_fotografo IN (:photographerIds);
+    `;
+
+    return await sequelize.query(query, {
+        replacements: { photographerIds },
+        type: QueryTypes.SELECT
+    });
+};
+
+
 export default {
-    searchPhotographers
+    searchPhotographers,
+    getServicesByPhotographerId,
+    getServicesByPhotographerIds
 };

@@ -30,8 +30,26 @@ if (!fs.existsSync(comprobantesDir)) {
   console.log('📁 Carpeta "uploads/comprobantes" creada.');
 }
 
+app.use((req, res, next) => {
+
+    const inicio = Date.now();
+
+    res.on('finish', () => {
+
+        const tiempo = Date.now() - inicio;
+
+        console.log(
+            `${req.method} ${req.originalUrl} ${res.statusCode} ${tiempo}ms`
+        );
+
+    });
+
+    next();
+
+});
 // 👉 Servir archivos estáticos (incluyendo comprobantes)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 
 // 👉 Tus rutas API generales
 app.use('/api', routes);

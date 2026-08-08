@@ -25,18 +25,16 @@ const getInfoPhotoById = async (req, res) => {
   try {
     console.log('Get info photographer by ID controller called', req.body);
     const { id_fotografo } = req.body;
-    const userInfo = await UserDAO.getInfoPhotoById(id_fotografo);
-    if (!userInfo) {
-      throw new AppError('Información del fotógrafo no encontrada', 404);
-    }
-    const servicios = await UserDAO.getInfoServicesByPhotographerId(id_fotografo);
-    const galeria = await UserDAO.getInfoGalleryByPhotographerId(id_fotografo);
-    const data = {
-      userInfo: userInfo,
-      servicios: servicios,
-      galeria: galeria
-    };
-    return successResponse(res, data, 'Información del fotógrafo encontrada');
+    const [
+      userInfo,
+      servicios,
+      galeria
+    ] = await Promise.all([
+      UserDAO.getInfoPhotoById(id_fotografo),
+      UserDAO.getInfoServicesByPhotographerId(id_fotografo),
+      UserDAO.getInfoGalleryByPhotographerId(id_fotografo)
+    ]);
+    return successResponse(res, { userInfo, servicios, galeria }, 'Información del fotógrafo encontrada');
   }
   catch (error) {
     return errorResponse(res, error);
@@ -107,7 +105,7 @@ const addServiceRequest = async (req, res) => {
       notas,
       nombre_fotografo: basicInfoPhotographer.nombre,
       thumbnail: basicInfoPhotographer.thumbnail
-        
+
     };
     console.log('Service request created with data:', response);
     await t.commit();
@@ -295,7 +293,7 @@ const getImageById = async (req, res) => {
       return res.status(404).send('Image not found');
     }
 
-    res.set('Content-Type', 'image/jpeg'); 
+    res.set('Content-Type', 'image/jpeg');
     res.send(imageBuffer);
 
   } catch (error) {
@@ -304,25 +302,53 @@ const getImageById = async (req, res) => {
 };
 
 const createInstantSession = async (req, res) => {
-  let t = null;
-  try {
-    t = await UserDAO.getTransaction();
-    const { id_cliente, id_fotografo, id_servicio, latitud, longitud } = req.body;
+    let t = null;
 
-    if (!id_cliente || !id_fotografo) {
-      throw new AppError('id_cliente e id_fotografo son requeridos', 400);
+    try {
+        t = await UserDAO.getTransaction();
+
+        const {
+            id_cliente,
+            id_fotografo,
+            latitud,
+            longitud
+        } = req.body;
+
+        if (!id_cliente || !id_fotografo) {
+            throw new AppError(
+                'id_cliente e id_fotografo son requeridos',
+                400
+            );
+        }
+
+        const reservation = await UserDAO.createInstantSession(
+            {
+                id_cliente,
+                id_fotografo,
+                latitud,
+                longitud
+            },
+            t
+        );
+
+        await t.commit();
+
+        return successResponse(
+            res,
+            reservation,
+            'Sesión inmediata creada exitosamente'
+        );
+
+    } catch (error) {
+
+        if (t) {
+            await t.rollback();
+        }
+
+        return errorResponse(res, error);
     }
-
-    const data = { id_cliente, id_fotografo, id_servicio, latitud, longitud };
-    const reservation = await UserDAO.createInstantSession(data, t);
-    
-    await t.commit();
-    return successResponse(res, reservation, 'Sesión inmediata creada exitosamente');
-  } catch (error) {
-    if (t) await t.rollback();
-    return errorResponse(res, error);
-  }
 };
+
 
 export default {
   get_monedas,
@@ -339,5 +365,5 @@ export default {
   getFullImagesByBookingId,
   getImageById,
   createInstantSession,
-  
+
 };

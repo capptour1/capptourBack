@@ -14,13 +14,13 @@ const upload = multer({
 });
 
 // NEW ROUTES
-router.post('/search-photographers', mapController.searchPhotographers);
+router.post('/searchPhotographers', mapController.searchPhotographers);
 router.post('/get-monedas', userController.get_monedas);
-router.post('/get-info-photographer', userController.getInfoPhotoById);
+router.post('/getInfoPhotographer', userController.getInfoPhotoById);
 router.post('/get-services-gallery-photographer', userController.getServicesGalleryByPhotographerId);
-router.post('/get-services-photographer', userController.getServicesByPhotographerId);
+router.post('/getServicePhotographer', userController.getServicesByPhotographerId);
 router.post('/add-service-request', userController.addServiceRequest);
-router.post('/create-instant-session', userController.createInstantSession);
+router.post('/createInstantSession', userController.createInstantSession);
 
 
 router.post('/getCountries', userController.getCountries);
