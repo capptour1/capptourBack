@@ -483,8 +483,13 @@ const consultar_transaccion_wompi = async (wompi_transaccion_id) => {
     throw new AppError('Wompi no configurado: falta WOMPI_PRIVATE_KEY', 500);
   }
 
+  // Detectar ambiente según el prefijo de la llave
+  const baseUrl = apiKey.startsWith('prv_test_')
+    ? 'https://sandbox.wompi.co/v1'
+    : 'https://production.wompi.co/v1';
+
   const response = await fetch(
-    `https://production.wompi.co/v1/transactions/${wompi_transaccion_id}`,
+    `${baseUrl}/transactions/${wompi_transaccion_id}`,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,
