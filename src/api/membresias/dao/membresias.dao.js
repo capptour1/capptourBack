@@ -167,7 +167,13 @@ const get_transaccion_by_wompi_id = async (wompi_transaccion_id) => {
 // ─── pagos.suscripciones_usuario ──────────────────────────────────────────────
 
 /**
- * Crea una suscripción de usuario en estado 'pending'.
+ * Crea o actualiza la suscripción del usuario (upsert).
+ *
+ * La tabla tiene UNIQUE(usuario_id): un usuario solo puede tener una fila.
+ * Si ya existe una suscripción para ese usuario, se reemplaza con los nuevos
+ * datos de membresía y transacción, volviendo al estado 'pending' para que
+ * el nuevo pago pueda ser aprobado por el webhook.
+ *
  * @param {object} data
  * @param {number}  data.usuario_id
  * @param {number}  data.membresia_id
@@ -179,9 +185,16 @@ const create_suscripcion = async (data, transaction) => {
 
   const result = await sequelize.query(
     `INSERT INTO pagos.suscripciones_usuario
-       (usuario_id, membresia_id, transaccion_id, estado)
+       (usuario_id, membresia_id, transaccion_id, estado, fecha_inicio, fecha_fin)
      VALUES
-       (:usuario_id, :membresia_id, :transaccion_id, 'pending')
+       (:usuario_id, :membresia_id, :transaccion_id, 'pending', NOW(), NOW())
+     ON CONFLICT (usuario_id) DO UPDATE
+       SET membresia_id        = EXCLUDED.membresia_id,
+           transaccion_id      = EXCLUDED.transaccion_id,
+           estado              = 'pending',
+           fecha_inicio        = NOW(),
+           fecha_fin           = NOW(),
+           fecha_actualizacion = NOW()
      RETURNING *;`,
     {
       replacements: { usuario_id, membresia_id, transaccion_id },
@@ -301,35 +314,39 @@ const get_estado_membresia_usuario = async (usuario_id) => {
 };
 
 /**
- * Obtiene todas las suscripciones de un usuario (para historial).
+ * Obtiene el historial de pagos del usuario consultando directamente
+ * pagos.transacciones_wompi, ya que la tabla suscripciones_usuario
+ * solo conserva la suscripción más reciente (UNIQUE usuario_id).
  * @param {number} usuario_id
  */
 const get_historial_suscripciones = async (usuario_id) => {
   return sequelize.query(
     `SELECT
-       su.id                    AS suscripcion_id,
-       su.estado                AS estado_suscripcion,
-       su.fecha_inicio,
-       su.fecha_fin,
-       su.fecha_creacion,
+       tw.id                    AS transaccion_id,
+       tw.referencia            AS transaccion_referencia,
+       tw.wompi_transaccion_id,
+       tw.estado                AS estado_transaccion_wompi,
+       tw.monto_en_centavos,
+       tw.fecha_creacion        AS transaccion_creada_en,
 
        m.id_membresia,
        m.detalle                AS membresia_nombre,
        m.duracion_dias,
        m.precio_en_cop,
 
-       tw.referencia            AS transaccion_referencia,
-       tw.estado                AS estado_transaccion_wompi,
-       tw.monto_en_centavos
+       su.id                    AS suscripcion_id,
+       su.estado                AS estado_suscripcion,
+       su.fecha_inicio,
+       su.fecha_fin
 
-     FROM pagos.suscripciones_usuario su
+     FROM pagos.transacciones_wompi tw
      INNER JOIN pagos.membresias m
-       ON m.id_membresia = su.membresia_id
-     LEFT JOIN pagos.transacciones_wompi tw
-       ON tw.id = su.transaccion_id
+       ON m.id_membresia = tw.membresia_id
+     LEFT JOIN pagos.suscripciones_usuario su
+       ON su.transaccion_id = tw.id
 
-     WHERE su.usuario_id = :usuario_id
-     ORDER BY su.fecha_creacion DESC;`,
+     WHERE tw.usuario_id = :usuario_id
+     ORDER BY tw.fecha_creacion DESC;`,
     {
       replacements: { usuario_id },
       type: QueryTypes.SELECT,
