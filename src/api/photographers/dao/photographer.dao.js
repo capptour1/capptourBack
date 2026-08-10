@@ -291,6 +291,7 @@ const getInfoServices = async (userId) => {
         `
         SELECT
             s.id_servicio,
+            f.id AS id_fotografo,
             s.nombre,
             s.descripcion,
             s.precio_hora,
@@ -356,11 +357,27 @@ const getLocations = async () => {
 const addService = async (service, transaction) => {
     try {
         const result = await sequelize.query(
-            `INSERT INTO fotografo.servicios (id_fotografo, nombre, descripcion, precio_hora,
-        id_moneda, editadas, no_editadas, id_ubicacion)
-        VALUES (:photographer_id, :name, :description, :price_hour,
-        :currency_id, :edited_photos, :unedited_photos, :id_ubicacion)
-        RETURNING *;`,
+            `
+            INSERT INTO fotografo.servicios (
+                id_fotografo,
+                nombre,
+                descripcion,
+                precio_hora,
+                id_moneda,
+                editadas,
+                no_editadas
+            )
+            VALUES (
+                :photographer_id,
+                :name,
+                :description,
+                :price_hour,
+                :currency_id,
+                :edited_photos,
+                :unedited_photos
+            )
+            RETURNING *;
+            `,
             {
                 replacements: {
                     photographer_id: service.id_fotografo,
@@ -370,16 +387,41 @@ const addService = async (service, transaction) => {
                     currency_id: service.id_moneda,
                     edited_photos: service.editadas,
                     unedited_photos: service.no_editadas,
-                    id_ubicacion: service.id_ubicacion || null
                 },
                 type: QueryTypes.INSERT,
-                transaction
+                transaction,
             }
         );
+
         return result[0][0];
     } catch (error) {
         console.error('Error registering services:', error);
         throw new Error('Error al registrar los servicios');
+    }
+};
+
+const addServiceCategories = async (serviceId, categories, transaction) => {
+    for (const idCategoria of categories) {
+        await sequelize.query(
+            `
+      INSERT INTO catalogo.servicio_categoria (
+          id_servicio,
+          id_categoria
+      )
+      VALUES (
+          :serviceId,
+          :categoryId
+      );
+      `,
+            {
+                replacements: {
+                    serviceId,
+                    categoryId: idCategoria,
+                },
+                type: QueryTypes.INSERT,
+                transaction,
+            }
+        );
     }
 };
 
@@ -425,6 +467,7 @@ export default {
     getInfoServices,
     getInfoGallery,
     addService,
+    addServiceCategories,
     addGalleryImages,
     getLocations
 

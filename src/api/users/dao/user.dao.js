@@ -8,17 +8,6 @@ const getTransaction = async () => {
     return await sequelize.transaction({ autocommit: false });
 }
 
-const get_monedas = async () => {
-    const result = await sequelize.query(
-        `SELECT * FROM fotografo.tipo_moneda;`,
-        {
-            type: QueryTypes.SELECT,
-        }
-    );
-    return result;
-
-};
-
 
 const getInfoPhotoById = async (photographerId) => {
     const result = await sequelize.query(
@@ -647,7 +636,6 @@ const crearReservaServicio = async (
 
 export default {
     getTransaction,
-    get_monedas,
     getInfoPhotoById,
     getInfoServicesByPhotographerId,
     getInfoGalleryByPhotographerId,

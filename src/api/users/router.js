@@ -15,7 +15,6 @@ const upload = multer({
 
 // NEW ROUTES
 router.post('/searchPhotographers', mapController.searchPhotographers);
-router.post('/get-monedas', userController.get_monedas);
 router.post('/getInfoPhotographer', userController.getInfoPhotoById);
 router.post('/get-services-gallery-photographer', userController.getServicesGalleryByPhotographerId);
 router.post('/getServicePhotographer', userController.getServicesByPhotographerId);

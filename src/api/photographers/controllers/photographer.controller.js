@@ -12,32 +12,32 @@ const { createThumbnail } = media;
 
 
 const getInfoPhotoDbById = async (req, res) => {
-    try {
-        const { id_usuario } = req.body;
+  try {
+    const { id_usuario } = req.body;
 
-        console.log('Get info photo by ID controller called', req.body);
+    console.log('Get info photo by ID controller called', req.body);
 
-        const [photographerInfo, sessionsInfo] = await Promise.all([
-            PhotographerDAO.getInfoPhotoDbById(id_usuario),
-            PhotographerDAO.getInfoSessionPhotoDbById(id_usuario)
-        ]);
+    const [photographerInfo, sessionsInfo] = await Promise.all([
+      PhotographerDAO.getInfoPhotoDbById(id_usuario),
+      PhotographerDAO.getInfoSessionPhotoDbById(id_usuario)
+    ]);
 
-        if (!photographerInfo) {
-            throw new AppError('Fotógrafo no encontrado', 404);
-        }
-
-        return successResponse(
-            res,
-            {
-                ...photographerInfo,
-                sessions: sessionsInfo
-            },
-            'Información del fotógrafo obtenida correctamente'
-        );
-
-    } catch (error) {
-        return errorResponse(res, error);
+    if (!photographerInfo) {
+      throw new AppError('Fotógrafo no encontrado', 404);
     }
+
+    return successResponse(
+      res,
+      {
+        ...photographerInfo,
+        sessions: sessionsInfo
+      },
+      'Información del fotógrafo obtenida correctamente'
+    );
+
+  } catch (error) {
+    return errorResponse(res, error);
+  }
 };
 
 const changeStatusSession = async (req, res) => {
@@ -198,77 +198,110 @@ const deleteImageDelivery = async (req, res) => {
 
 
 const getServices = async (req, res) => {
-    try {
-        const { id_usuario } = req.body;
+  try {
+    const { id_usuario } = req.body;
 
-        const [services, gallery] = await Promise.all([
-            PhotographerDAO.getInfoServices(id_usuario),
-            PhotographerDAO.getInfoGallery(id_usuario)
-        ]);
+    const [services, gallery] = await Promise.all([
+      PhotographerDAO.getInfoServices(id_usuario),
+      PhotographerDAO.getInfoGallery(id_usuario)
+    ]);
 
-        const galleryMap = new Map();
+    const galleryMap = new Map();
 
-        for (const image of gallery) {
-            if (!galleryMap.has(image.id_servicio)) {
-                galleryMap.set(image.id_servicio, []);
-            }
+    for (const image of gallery) {
+      if (!galleryMap.has(image.id_servicio)) {
+        galleryMap.set(image.id_servicio, []);
+      }
 
-            galleryMap.get(image.id_servicio).push(image);
-        }
-
-        for (const service of services) {
-            service.imagenes =
-                galleryMap.get(service.id_servicio) || [];
-        }
-
-        return successResponse(
-            res,
-            services,
-            'Servicios obtenidos correctamente'
-        );
+      galleryMap.get(image.id_servicio).push(image);
     }
-    catch (error) {
-        return errorResponse(res, error);
+
+    for (const service of services) {
+      service.imagenes =
+        galleryMap.get(service.id_servicio) || [];
     }
+
+    return successResponse(
+      res,
+      services,
+      'Servicios obtenidos correctamente'
+    );
+  }
+  catch (error) {
+    return errorResponse(res, error);
+  }
 };
+
+
 
 const addService = async (req, res) => {
   let t;
+
   try {
     t = await PhotographerDAO.start_transaction();
+
     let { servicio } = req.body;
     servicio = JSON.parse(servicio);
-    const serviceFiles = req.files.filter(file => file.fieldname.startsWith(`service_`));
 
-    const userInfo = await PhotographerDAO.getInfoPhotoDbById(servicio.id_usuario);
+    console.log('Add service controller called', servicio);
+    console.log('Files received for service', req.files);
+
+    const serviceFiles = req.files.filter(file =>
+      file.fieldname.startsWith('service_'),
+    );
+
+    const userInfo = await PhotographerDAO.getInfoPhotoDbById(
+      servicio.id_usuario,
+    );
+
     if (!userInfo) {
       throw new AppError('Fotógrafo no encontrado', 404);
     }
 
+    // ===========================
+    // Servicio
+    // ===========================
     const dataService = {
-      nombre: servicio.name,
-      descripcion: servicio.description,
-      precio_hora: servicio.price_hour,
-      id_moneda: servicio.currency_id,
-      editadas: servicio.edited,
-      no_editadas: servicio.unedited,
+      nombre: servicio.nombre,
+      descripcion: servicio.descripcion,
+      precio_hora: servicio.precio_hora,
+      id_moneda: servicio.id_moneda,
+      editadas: servicio.editadas,
+      no_editadas: servicio.no_editadas,
       id_fotografo: userInfo.id_fotografo,
-      id_ubicacion: servicio.id_ubicacion || null
     };
 
+    const insertedService = await photographerDao.addService(
+      dataService,
+      t,
+    );
 
-    const insertedService = await photographerDao.addService(dataService, t);
+    // ===========================
+    // Categorías
+    // ===========================
+    if (
+      Array.isArray(servicio.categorias) &&
+      servicio.categorias.length > 0
+    ) {
+      await photographerDao.addServiceCategories(
+        insertedService.id_servicio,
+        servicio.categorias,
+        t,
+      );
+    }
 
-    let imagesData = [];
+    // ===========================
+    // Galería
+    // ===========================
+    const imagesData = [];
 
-    for (let j = 0; j < serviceFiles.length; j++) {
-      const file = serviceFiles[j];
+    for (const file of serviceFiles) {
       const thumbnailBuffer = await createThumbnail(file);
 
       imagesData.push({
         id_servicio: insertedService.id_servicio,
         imagen: file,
-        thumbnail: thumbnailBuffer
+        thumbnail: thumbnailBuffer,
       });
     }
 
@@ -277,15 +310,20 @@ const addService = async (req, res) => {
     }
 
     await t.commit();
-    return successResponse(res, insertedService, 'Servicio agregado correctamente');
-  }
-  catch (error) {
+
+    return successResponse(
+      res,
+      insertedService,
+      'Servicio agregado correctamente',
+    );
+  } catch (error) {
     if (t) {
       await t.rollback();
     }
+
     return errorResponse(res, error);
   }
-}
+};
 
 const getLocations = async (req, res) => {
   try {

@@ -9,18 +9,6 @@ const { successResponse, errorResponse } = HelperResponse;
 /* NUEVO CONTROLADOR PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL */
 
 
-const get_monedas = async (req, res) => {
-  try {
-    console.log('Get monedas controller called');
-    const monedas = await UserDAO.get_monedas();
-    return successResponse(res, monedas, 'Monedas obtenidas exitosamente');
-  }
-  catch (error) {
-    return errorResponse(res, error);
-  }
-};
-
-
 const getInfoPhotoById = async (req, res) => {
   try {
     console.log('Get info photographer by ID controller called', req.body);
@@ -351,7 +339,6 @@ const createInstantSession = async (req, res) => {
 
 
 export default {
-  get_monedas,
   getInfoPhotoById,
   getServicesGalleryByPhotographerId,
   updateProfilePicture,
