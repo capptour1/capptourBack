@@ -72,7 +72,6 @@ const changeAvailability = async (req, res) => {
 const getAllSessionsByPhotographer = async (req, res) => {
   try {
     const { id_usuario } = req.body;
-    console.log('Get all sessions by photographer controller called', req.body);
     const sessions = await PhotographerDAO.getInfoSessionPhotoDbById(id_usuario);
     return successResponse(res, sessions, 'Sesiones del fotógrafo obtenidas correctamente');
   }
@@ -137,10 +136,7 @@ const uploadImageDelivery = async (req, res) => {
     }
 
     const delivery = await PhotographerDAO.createDelivery(id_reserva, t);
-    const thumbnailBuffer = await sharp(file.buffer)
-      .resize(300, 300, { fit: 'cover' })
-      .jpeg({ quality: 70 })
-      .toBuffer();
+    const thumbnailBuffer = await createThumbnail(file);
     const dataGallery = {
       id_entrega: delivery.id_entrega,
       imagen: file.buffer,
