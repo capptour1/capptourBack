@@ -33,8 +33,31 @@ const getCurrencies = async () => {
 
 };
 
+const getCountries = async () => {
+    const result = await sequelize.query(
+        `SELECT * FROM public.paises;`,
+        {
+            type: QueryTypes.SELECT
+        }
+    );
+    return result;
+};
+
+const getGenders = async () => {
+    const result = await sequelize.query(
+        `SELECT * FROM public.generos;`,
+        {
+            type: QueryTypes.SELECT
+        }
+    );
+    return result;
+};
+
+
 
 export default {
     getCurrencies,
-    getCategories
+    getCategories,
+    getCountries,
+    getGenders
 };

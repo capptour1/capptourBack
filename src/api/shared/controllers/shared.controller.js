@@ -29,7 +29,33 @@ const getCurrencies = async (req, res) => {
 
 
 
+const getCountries = async (req, res) => {
+    try {
+        console.log('Get countries controller called');
+        const countries = await UserDAO.getCountries();
+        console.log('Countries obtained:', countries);
+        return successResponse(res, countries, 'Países obtenidos exitosamente');
+    }
+    catch (error) {
+        return errorResponse(res, error);
+    }
+};
+
+const getGenders = async (req, res) => {
+    try {
+        console.log('Get genders controller called');
+        const genders = await UserDAO.getGenders();
+        return successResponse(res, genders, 'Géneros obtenidos exitosamente');
+    }
+    catch (error) {
+        return errorResponse(res, error);
+    }
+};
+
+
 export default {
     getCategories,
-    getCurrencies
+    getCurrencies,
+    getCountries,
+    getGenders
 };

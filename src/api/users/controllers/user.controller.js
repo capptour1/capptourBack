@@ -65,7 +65,7 @@ const addServiceRequest = async (req, res) => {
     const { id_cliente, id_fotografo, id_servicio, fecha, hora_inicio, hora_fin, longitud, latitud, notas } = req.body;
     const info = {
       id_cliente,
-      id_servicio,
+      id_fotografo,
       fecha,
       hora_inicio,
       hora_fin,
@@ -75,8 +75,27 @@ const addServiceRequest = async (req, res) => {
     }
     console.log('Add service request controller called with data:', info);
     const reservation = await UserDAO.addServiceRequest(info, t);
-    const basicInfoPhotographer = await UserDAO.getBasicInfoPhotographerById(id_fotografo);
     const basicInfoService = await UserDAO.getBasicInfoServiceById(id_servicio);
+
+    const reservationService = {
+      id_reserva: reservation.id_reserva,
+      id_origen: id_servicio,
+      nombre: basicInfoService.nombre,
+      descripcion: basicInfoService.descripcion,
+      editadas: basicInfoService.editadas,
+      no_editadas: basicInfoService.no_editadas,
+      precio_base: basicInfoService.precio_hora,
+      precio_minimo: basicInfoService.precio_hora,
+      precio_final: basicInfoService.precio_hora,
+      id_moneda: basicInfoService.id_moneda,
+      origen: 'F',
+      cantidad: 1
+    }
+
+    await UserDAO.addServiceRequestService(reservationService, t);
+
+    const basicInfoPhotographer = await UserDAO.getBasicInfoPhotographerById(id_fotografo);
+    
     const response = {
       id_reserva: reservation.id_reserva,
       id_cliente,
@@ -95,7 +114,6 @@ const addServiceRequest = async (req, res) => {
       thumbnail: basicInfoPhotographer.thumbnail
 
     };
-    console.log('Service request created with data:', response);
     await t.commit();
     return successResponse(res, response, 'Reserva creada exitosamente');
   } catch (error) {
@@ -105,28 +123,6 @@ const addServiceRequest = async (req, res) => {
 };
 
 
-const getCountries = async (req, res) => {
-  try {
-    console.log('Get countries controller called');
-    const countries = await UserDAO.getCountries();
-    console.log('Countries obtained:', countries);
-    return successResponse(res, countries, 'Países obtenidos exitosamente');
-  }
-  catch (error) {
-    return errorResponse(res, error);
-  }
-};
-
-const getGenders = async (req, res) => {
-  try {
-    console.log('Get genders controller called');
-    const genders = await UserDAO.getGenders();
-    return successResponse(res, genders, 'Géneros obtenidos exitosamente');
-  }
-  catch (error) {
-    return errorResponse(res, error);
-  }
-};
 
 
 const getInfoUserById = async (req, res) => {
@@ -344,8 +340,6 @@ export default {
   updateProfilePicture,
   getServicesByPhotographerId,
   addServiceRequest,
-  getCountries,
-  getGenders,
   getInfoUserById,
   updateProfile,
   submitServiceRating,

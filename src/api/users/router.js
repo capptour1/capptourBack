@@ -17,13 +17,10 @@ const upload = multer({
 router.post('/searchPhotographers', mapController.searchPhotographers);
 router.post('/getInfoPhotographer', userController.getInfoPhotoById);
 router.post('/get-services-gallery-photographer', userController.getServicesGalleryByPhotographerId);
-router.post('/getServicePhotographer', userController.getServicesByPhotographerId);
-router.post('/add-service-request', userController.addServiceRequest);
+router.post('/getServicesPhotographer', userController.getServicesByPhotographerId);
+router.post('/addServiceRequest', userController.addServiceRequest);
 router.post('/createInstantSession', userController.createInstantSession);
 
-
-router.post('/getCountries', userController.getCountries);
-router.post('/getGenders', userController.getGenders);
 
 router.post('/getInfoUserById', userController.getInfoUserById);
 router.post('/updateProfilePicture', upload.any(), userController.updateProfilePicture);

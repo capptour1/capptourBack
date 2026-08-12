@@ -76,10 +76,15 @@ const getInfoServicesByPhotographerId = async (photographerId) => {
             tm.id_moneda,
             tm.codigo,
             tm.simbolo,
-            s.id_fotografo
+            s.id_fotografo,
+            sc.id_categoria,
+            cs.nombre AS nombre_categoria
 
         FROM fotografo.servicios s
-
+        INNER JOIN fotografo.servicio_categoria sc
+            ON sc.id_servicio = s.id_servicio
+        INNER JOIN catalogo.categoria_servicio cs
+            ON cs.id_categoria = sc.id_categoria
         INNER JOIN fotografo.tipo_moneda tm
             ON tm.id_moneda = s.id_moneda
 
@@ -134,13 +139,28 @@ const loadFullImageById = async (imageId) => {
 
 
 const addServiceRequest = async (reservationData, transaction) => {
-    const { id_cliente, id_servicio, fecha, hora_inicio, hora_fin, longitud, latitud, notas } = reservationData;
+    const { id_cliente, id_fotografo, fecha, hora_inicio, hora_fin, longitud, latitud, notas } = reservationData;
     const result = await sequelize.query(
-        `INSERT INTO reserva.reserva (id_cliente, id_servicio, fecha, hora_inicio, hora_fin, longitud, latitud, notas)
-         VALUES (cast(:id_cliente AS int), cast(:id_servicio AS int), cast(:fecha AS date), cast(:hora_inicio AS time), cast(:hora_fin AS time), cast(:longitud AS float), cast(:latitud AS float), :notas)
+        `INSERT INTO reserva.reserva (id_cliente, id_fotografo, fecha, hora_inicio, hora_fin, longitud, latitud, notas)
+         VALUES (cast(:id_cliente AS int), cast(:id_fotografo AS int), cast(:fecha AS date), cast(:hora_inicio AS time), cast(:hora_fin AS time), cast(:longitud AS float), cast(:latitud AS float), :notas)
          RETURNING id_reserva;`,
         {
-            replacements: { id_cliente, id_servicio, fecha, hora_inicio, hora_fin, longitud, latitud, notas },
+            replacements: { id_cliente, id_fotografo, fecha, hora_inicio, hora_fin, longitud, latitud, notas },
+            type: QueryTypes.INSERT,
+            transaction: transaction
+        }
+    );
+    return result[0][0];
+}
+
+const addServiceRequestService = async (serviceData, transaction) => {
+    const { id_reserva, id_origen, nombre, descripcion, editadas, no_editadas, precio_base, precio_minimo, precio_final, id_moneda, origen, cantidad } = serviceData;
+    const result = await sequelize.query(
+        `INSERT INTO reserva.reserva_servicio (id_reserva, id_origen, nombre, descripcion, editadas, no_editadas, precio_base, precio_minimo, precio_final, id_moneda, origen, cantidad)
+         VALUES (cast(:id_reserva AS int), cast(:id_origen AS int), :nombre, :descripcion, cast(:editadas AS int), cast(:no_editadas AS int), cast(:precio_base AS numeric(12, 2)), cast(:precio_minimo AS numeric(12, 2)), cast(:precio_final AS numeric(12, 2)), cast(:id_moneda AS int), :origen, cast(:cantidad AS int))
+         RETURNING id_reserva_servicio;`,
+        {
+            replacements: { id_reserva, id_origen, nombre, descripcion, editadas, no_editadas, precio_base, precio_minimo, precio_final, id_moneda, origen, cantidad },
             type: QueryTypes.INSERT,
             transaction: transaction
         }
@@ -171,7 +191,7 @@ const getBasicInfoPhotographerById = async (photographerId) => {
 
 const getBasicInfoServiceById = async (serviceId) => {
     const result = await sequelize.query(
-        `SELECT id_servicio, nombre FROM fotografo.servicios WHERE id_servicio = cast(:id_servicio AS int);`,
+        `SELECT * FROM fotografo.servicios WHERE id_servicio = cast(:id_servicio AS int);`,
         {
             replacements: { id_servicio: serviceId },
             type: QueryTypes.SELECT
@@ -182,25 +202,6 @@ const getBasicInfoServiceById = async (serviceId) => {
 }
 
 
-const getCountries = async () => {
-    const result = await sequelize.query(
-        `SELECT * FROM public.paises;`,
-        {
-            type: QueryTypes.SELECT
-        }
-    );
-    return result;
-};
-
-const getGenders = async () => {
-    const result = await sequelize.query(
-        `SELECT * FROM public.generos;`,
-        {
-            type: QueryTypes.SELECT
-        }
-    );
-    return result;
-};
 
 const getInfoUserById = async (userId, id_rol) => {
     let query = '';
@@ -641,10 +642,9 @@ export default {
     getInfoGalleryByPhotographerId,
     loadFullImageById,
     addServiceRequest,
+    addServiceRequestService,
     getBasicInfoPhotographerById,
     getBasicInfoServiceById,
-    getCountries,
-    getGenders,
     getInfoUserById,
     updateProfilePicture,
     updateProfile,
@@ -655,3 +655,5 @@ export default {
     getImageById,
     createInstantSession
 };
+
+

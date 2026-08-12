@@ -128,8 +128,15 @@ const getServicesByPhotographerIds = async (photographerIds) => {
             s.no_editadas,
             s.id_moneda,
             tm.codigo,
-            tm.simbolo
+            tm.simbolo,
+            sc.id_categoria,
+            cs.nombre AS nombre_categoria
+
         FROM fotografo.servicios s
+        INNER JOIN fotografo.servicio_categoria sc
+            ON sc.id_servicio = s.id_servicio
+        INNER JOIN catalogo.categoria_servicio cs
+            ON cs.id_categoria = sc.id_categoria
         INNER JOIN fotografo.tipo_moneda tm
             ON s.id_moneda = tm.id_moneda
         WHERE s.estado = 'A'
