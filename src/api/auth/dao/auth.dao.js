@@ -258,7 +258,7 @@ const register_gallery_images_v2 = async (imagesData, transaction) => {
 const find_photographer_by_user_id = async (user_id) => {
   try {
     const result = await sequelize.query(
-      `SELECT * FROM fotografo.fotografos WHERE usuario_id = cast(:user_id AS int);`,
+      `SELECT * FROM fotografo.fotografos WHERE id_usuario = cast(:user_id AS int);`,
       { replacements: { user_id }, type: QueryTypes.SELECT }
     );
     return result.length > 0 ? result[0] : null;

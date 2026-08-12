@@ -21,9 +21,9 @@ const getInfoPhotoDbById = async (id_usuario) => {
             f.is_active as disponibilidad,
             f.id_experiencia, f.id_rol
             FROM fotografo.fotografos f 
-            INNER JOIN auth.usuarios u ON f.usuario_id = u.id
+            INNER JOIN auth.usuarios u ON f.id_usuario = u.id
             LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo 
-            WHERE f.usuario_id = cast(:id_usuario AS int)`
+            WHERE f.id_usuario = cast(:id_usuario AS int)`
         ,
         {
             replacements: { id_usuario: id_usuario },
@@ -87,7 +87,7 @@ const getInfoSessionPhotoDbById = async (id_usuario) => {
         INNER JOIN fotografo.tipo_moneda tm
             ON tm.id_moneda = rs.id_moneda
 
-        WHERE f.usuario_id = CAST(:id_usuario AS int)
+        WHERE f.id_usuario = CAST(:id_usuario AS int)
 
         ORDER BY r.fecha DESC,
                 r.hora_inicio DESC,

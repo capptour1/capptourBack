@@ -250,7 +250,7 @@ const getInfoUserById = async (userId, id_rol) => {
         LEFT JOIN auth.usuario_telefono ut ON u.id = ut.id_usuario
         LEFT JOIN public.paises p ON ut.id_pais = p.id_pais
         LEFT JOIN public.paises p2 ON u.id_pais = p2.id_pais
-        LEFT JOIN fotografo.fotografos f ON u.id = f.usuario_id
+        LEFT JOIN fotografo.fotografos f ON u.id = f.id_usuario
         LEFT JOIN public.generos g ON u.id_genero = g.id_genero
         LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo
         WHERE u.id = cast(:id_usuario AS int);
