@@ -32,7 +32,7 @@ const getCurrencies = async (req, res) => {
 const getCountries = async (req, res) => {
     try {
         console.log('Get countries controller called');
-        const countries = await UserDAO.getCountries();
+        const countries = await SharedDao.getCountries();
         console.log('Countries obtained:', countries);
         return successResponse(res, countries, 'Países obtenidos exitosamente');
     }
@@ -44,7 +44,7 @@ const getCountries = async (req, res) => {
 const getGenders = async (req, res) => {
     try {
         console.log('Get genders controller called');
-        const genders = await UserDAO.getGenders();
+        const genders = await SharedDao.getGenders();
         return successResponse(res, genders, 'Géneros obtenidos exitosamente');
     }
     catch (error) {
