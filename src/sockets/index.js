@@ -28,30 +28,22 @@ export default function initSockets(server) {
     try {
       const token = socket.handshake.auth?.token;
       if (!token) {
-        // Permitir conexión sin token (compatibilidad con versiones anteriores)
-        // pero socket.user quedará undefined
-        console.warn('⚠️  Socket sin token — conexión anónima');
-        return next();
+        return next(new Error('Token requerido'));
       }
       const payload = jwt.verify(token, SECRET_KEY);
       socket.user = { id: payload.userId, role: payload.role };
       next();
     } catch (err) {
       console.warn('⚠️  Token inválido en socket:', err.message);
-      // No rechazamos para no romper clientes existentes; socket.user = undefined
-      next();
+      return next(new Error('Token inválido'));
     }
   });
 
   io.on('connection', (socket) => {
-    console.log(`🔌 Cliente conectado: ${socket.id}  user=${socket.user?.id ?? 'anon'}`);
+    console.log(`🔌 Cliente conectado: ${socket.id} user=${socket.user.id}`);
 
-    // ── Unirse al room personal del usuario ──────────────────────────────
-    // El cliente también puede emitir 'join_user' manualmente (compatibilidad)
-    if (socket.user?.id) {
-      socket.join(`user_${socket.user.id}`);
-      console.log(`👤 Usuario ${socket.user.id} unido a room user_${socket.user.id}`);
-    }
+    // ── Unirse al room personal del usuario (automático, basado en JWT) ───
+    socket.join(`user_${socket.user.id}`);
 
     // ── Registrar handlers ────────────────────────────────────────────────
     chatSocket(io, socket);

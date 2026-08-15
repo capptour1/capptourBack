@@ -5,6 +5,7 @@ import HelperResponse from '../../../utils/helperResponse.js';
 import sharp from 'sharp';
 import media from '../../../utils/media.js';
 import photographerDao from '../dao/photographer.dao.js';
+import notificationService from '../../notifications/notification.service.js';
 
 const { successResponse, errorResponse } = HelperResponse;
 
@@ -46,8 +47,36 @@ const changeStatusSession = async (req, res) => {
     t = await PhotographerDAO.start_transaction();
     const { id_reserva, estado } = req.body;
     console.log('Change status session controller called', req.body);
+
+    // 1. Obtener la reserva para conocer al destinatario
+    const booking = await PhotographerDAO.getBookingOwner(id_reserva);
+    if (!booking) {
+      throw new AppError('Reserva no encontrada', 404);
+    }
+
+    // 2. Actualizar estado
     await PhotographerDAO.changeStatusSession(id_reserva, estado, t);
     await t.commit();
+
+    // 3. Notificar al cliente (fuera de la transacción — no bloquea el response)
+    const statusMessages = {
+      A: { titulo: 'Reserva confirmada', mensaje: 'Tu sesión ha sido confirmada por el fotógrafo' },
+      R: { titulo: 'Reserva rechazada', mensaje: 'El fotógrafo no pudo aceptar tu solicitud' },
+      C: { titulo: 'Sesión completada', mensaje: 'Tu sesión ha sido marcada como completada' },
+      X: { titulo: 'Reserva cancelada', mensaje: 'Tu reserva ha sido cancelada' },
+    };
+
+    const msg = statusMessages[estado] || { titulo: 'Actualización de reserva', mensaje: `Tu reserva cambió al estado: ${estado}` };
+
+    notificationService.send({
+      userId: booking.id_cliente,
+      tipo: 'booking',
+      titulo: msg.titulo,
+      mensaje: msg.mensaje,
+      action: 'OPEN_BOOKING',
+      payload: { bookingId: Number(id_reserva), status: estado },
+    }).catch(err => console.error('Error sending booking notification:', err));
+
     return successResponse(res, { estado }, 'Estado de la sesión actualizado correctamente');
   } catch (error) {
     if (t) {

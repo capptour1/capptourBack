@@ -352,6 +352,23 @@ const getLocations = async () => {
     return result;
 };
 
+/**
+ * Obtiene el id_cliente de una reserva.
+ * Se usa para determinar a quién notificar cuando cambia el estado.
+ */
+const getBookingOwner = async (id_reserva) => {
+    const result = await sequelize.query(
+        `SELECT id_cliente, id_fotografo, estado
+         FROM reserva.reserva
+         WHERE id_reserva = CAST(:id_reserva AS int)`,
+        {
+            replacements: { id_reserva },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result[0] ?? null;
+};
+
 
 
 const addService = async (service, transaction) => {
@@ -469,7 +486,8 @@ export default {
     addService,
     addServiceCategories,
     addGalleryImages,
-    getLocations
+    getLocations,
+    getBookingOwner
 
 
 };

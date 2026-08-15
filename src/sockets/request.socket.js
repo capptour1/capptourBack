@@ -2,11 +2,6 @@ import notificationService from '../api/notifications/notification.service.js';
 
 export default function requestSocket(io, socket) {
 
-  // El cliente se une a su room personal (compatibilidad con clientes sin token)
-  socket.on('join_user', (userId) => {
-    socket.join(`user_${userId}`);
-  });
-
   // ── Nueva solicitud de sesión (cliente → fotógrafo) ───────────────────
   socket.on('new_request', async (data) => {
     // data: { photographerId, clientId, sessionId, clientName }
@@ -16,13 +11,13 @@ export default function requestSocket(io, socket) {
         from: data.clientId,
       });
 
-      await notificationService.send(io, {
+      await notificationService.send({
         userId: Number(data.photographerId),
         tipo: 'booking',
         titulo: 'Nueva solicitud de sesión',
         mensaje: `${data.clientName ?? 'Un cliente'} quiere reservar una sesión contigo`,
+        action: 'OPEN_BOOKING',
         payload: {
-          route: 'requestPhotographer',
           sessionId: data.sessionId,
         },
       });
@@ -38,15 +33,15 @@ export default function requestSocket(io, socket) {
       io.to(`user_${data.clientId}`).emit('request_status', data);
 
       const accepted = data.accepted ?? data.status === 'accepted';
-      await notificationService.send(io, {
+      await notificationService.send({
         userId: Number(data.clientId),
         tipo: 'session',
         titulo: accepted ? 'Solicitud aceptada' : 'Solicitud rechazada',
         mensaje: accepted
           ? `${data.photographerName ?? 'El fotógrafo'} aceptó tu solicitud de sesión`
           : `${data.photographerName ?? 'El fotógrafo'} rechazó tu solicitud de sesión`,
+        action: 'OPEN_BOOKING',
         payload: {
-          route: accepted ? 'bookingForm' : null,
           sessionId: data.sessionId,
         },
       });
@@ -59,13 +54,13 @@ export default function requestSocket(io, socket) {
   socket.on('delivery_ready', async (data) => {
     // data: { clientId, photographerName, sessionId }
     try {
-      await notificationService.send(io, {
+      await notificationService.send({
         userId: Number(data.clientId),
         tipo: 'session',
         titulo: '¡Tus fotos están listas!',
         mensaje: `${data.photographerName ?? 'El fotógrafo'} subió las fotos de tu sesión`,
+        action: 'OPEN_SESSION',
         payload: {
-          route: 'deliverySessionPhotographer',
           sessionId: data.sessionId,
         },
       });
@@ -78,13 +73,13 @@ export default function requestSocket(io, socket) {
   socket.on('rating_received', async (data) => {
     // data: { photographerId, clientName, sessionId, rating }
     try {
-      await notificationService.send(io, {
+      await notificationService.send({
         userId: Number(data.photographerId),
         tipo: 'rating',
         titulo: 'Nueva calificación',
         mensaje: `${data.clientName ?? 'Un cliente'} calificó tu sesión con ${data.rating ?? '⭐'} estrellas`,
+        action: 'NONE',
         payload: {
-          route: 'dashboardPhotographer',
           sessionId: data.sessionId,
         },
       });

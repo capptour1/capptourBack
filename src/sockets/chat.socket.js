@@ -38,16 +38,18 @@ export default function chatSocket(io, socket) {
             ? Number(conversation.usuario_fotografo_id)
             : Number(conversation.id_cliente);
 
-        await notificationService.send(io, {
+        await notificationService.send({
           userId: recipientId,
           tipo: 'message',
           titulo: 'Nuevo mensaje',
           mensaje: message.trim().length > 60
             ? message.trim().substring(0, 60) + '…'
             : message.trim(),
+          action: 'OPEN_CHAT',
           payload: {
-            route: 'chatScreen',
             conversationId: Number(conversationId),
+            clientId: Number(conversation.id_cliente),
+            photographerId: Number(conversation.id_fotografo),
           },
         });
       }

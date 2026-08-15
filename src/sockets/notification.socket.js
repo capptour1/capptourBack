@@ -4,21 +4,19 @@ import notificationDao from '../api/notifications/dao/notification.dao.js';
  * notification.socket.js
  *
  * Maneja eventos de notificaciones en tiempo real desde el cliente.
+ *
+ * SEGURIDAD: Toda operación usa socket.user.id (del token JWT verificado
+ * en el middleware de conexión). Nunca se confía en IDs enviados por el cliente.
  */
 export default function notificationSocket(io, socket) {
 
-  // El cliente puede unirse manualmente a su room (para compatibilidad
-  // con versiones que no envían token en el handshake)
-  socket.on('join_user', (userId) => {
-    socket.join(`user_${userId}`);
-    console.log(`👤 join_user: socket ${socket.id} → room user_${userId}`);
-  });
-
-  // Marcar una notificación como leída desde el cliente
-  socket.on('notification:read', async ({ notifId, userId }) => {
+  // Marcar una notificación como leída
+  socket.on('notification:read', async ({ notifId }) => {
     try {
-      await notificationDao.markAsRead(Number(notifId), Number(userId));
-      // Confirmar al cliente
+      const userId = socket.user?.id;
+      if (!userId) return;
+
+      await notificationDao.markAsRead(Number(notifId), userId);
       socket.emit('notification:read_ack', { notifId });
     } catch (err) {
       console.error('Error marking notification as read:', err);
@@ -26,9 +24,12 @@ export default function notificationSocket(io, socket) {
   });
 
   // Marcar todas como leídas
-  socket.on('notification:read_all', async ({ userId }) => {
+  socket.on('notification:read_all', async () => {
     try {
-      await notificationDao.markAllAsRead(Number(userId));
+      const userId = socket.user?.id;
+      if (!userId) return;
+
+      await notificationDao.markAllAsRead(userId);
       socket.emit('notification:read_all_ack');
     } catch (err) {
       console.error('Error marking all notifications as read:', err);
