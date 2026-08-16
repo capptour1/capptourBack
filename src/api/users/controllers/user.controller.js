@@ -23,7 +23,14 @@ const getInfoPhotoById = async (req, res) => {
       UserDAO.getInfoServicesByPhotographerId(id_fotografo),
       UserDAO.getInfoGalleryByPhotographerId(id_fotografo)
     ]);
-    return successResponse(res, { userInfo, servicios, galeria }, 'Información del fotógrafo encontrada');
+
+    // Resolver URLs de thumbnails de galería
+    const galeriaResolved = galeria.map(img => ({
+      ...img,
+      url_thumbnail: img.url_thumbnail ? storageService.getUrl(img.url_thumbnail) : null,
+    }));
+
+    return successResponse(res, { userInfo, servicios, galeria: galeriaResolved }, 'Información del fotógrafo encontrada');
   }
   catch (error) {
     return errorResponse(res, error);
@@ -32,13 +39,18 @@ const getInfoPhotoById = async (req, res) => {
 
 const getServicesGalleryByPhotographerId = async (req, res) => {
   try {
-    console.log('Get info services by photographer ID controller called', req.body);
     const { id_fotografo } = req.body;
     const servicios = await UserDAO.getInfoServicesByPhotographerId(id_fotografo);
     const galeria = await UserDAO.getInfoGalleryByPhotographerId(id_fotografo);
+
+    const galeriaResolved = galeria.map(img => ({
+      ...img,
+      url_thumbnail: img.url_thumbnail ? storageService.getUrl(img.url_thumbnail) : null,
+    }));
+
     const data = {
       servicios: servicios,
-      galeria: galeria
+      galeria: galeriaResolved
     };
     return successResponse(res, data, 'Servicios del fotógrafo encontrados');
   }

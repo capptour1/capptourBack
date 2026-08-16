@@ -262,7 +262,10 @@ const getServices = async (req, res) => {
         galleryMap.set(image.id_servicio, []);
       }
 
-      galleryMap.get(image.id_servicio).push(image);
+      galleryMap.get(image.id_servicio).push({
+        ...image,
+        url_thumbnail: image.url_thumbnail ? storageService.getUrl(image.url_thumbnail) : null,
+      });
     }
 
     for (const service of services) {
@@ -342,15 +345,27 @@ const addService = async (req, res) => {
     // ===========================
     // Galería
     // ===========================
+    const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
     const imagesData = [];
 
     for (const file of serviceFiles) {
-      const thumbnailBuffer = await createThumbnail(file);
+      // Validar MIME
+      if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+        throw new AppError(`Formato no soportado: ${file.mimetype}. Solo se permiten JPEG, PNG y WebP.`, 400);
+      }
+
+      // Subir imagen y thumbnail via StorageService
+      const uploaded = await storageService.upload(file.buffer, 'services/images', file.mimetype);
+      const thumbBuffer = await createThumbnail(file);
+      const thumbResult = await storageService.upload(thumbBuffer, 'services/thumbnails', file.mimetype);
 
       imagesData.push({
         id_servicio: insertedService.id_servicio,
-        imagen: file,
-        thumbnail: thumbnailBuffer,
+        url_imagen: uploaded.path,
+        url_thumbnail: thumbResult.path,
+        nombre: file.originalname,
+        mime_type: file.mimetype,
+        tamano: file.size,
       });
     }
 

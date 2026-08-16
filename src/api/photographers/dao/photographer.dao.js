@@ -338,7 +338,7 @@ const getInfoGallery = async (userId) => {
         SELECT
             t.id_servicio,
             t.id_imagen,
-            t.thumbnail
+            t.url_thumbnail
         FROM fotografo.imagen_servicio t
         INNER JOIN fotografo.servicios s
             ON s.id_servicio = t.id_servicio
@@ -461,22 +461,29 @@ const addServiceCategories = async (serviceId, categories, transaction) => {
 
 const addGalleryImages = async (imagesData, transaction) => {
     try {
+        const results = [];
         for (let i = 0; i < imagesData.length; i++) {
             const item = imagesData[i];
-            await sequelize.query(
-                `INSERT INTO fotografo.imagen_servicio (id_servicio, imagen, thumbnail)
-        VALUES (:id_servicio, :imagen, :thumbnail)`,
+            const [result] = await sequelize.query(
+                `INSERT INTO fotografo.imagen_servicio (id_servicio, url_imagen, url_thumbnail, nombre, mime_type, tamano)
+                 VALUES (:id_servicio, :url_imagen, :url_thumbnail, :nombre, :mime_type, :tamano)
+                 RETURNING id_imagen, url_imagen, url_thumbnail`,
                 {
                     replacements: {
                         id_servicio: item.id_servicio,
-                        imagen: item.imagen.buffer,
-                        thumbnail: item.thumbnail
+                        url_imagen: item.url_imagen,
+                        url_thumbnail: item.url_thumbnail,
+                        nombre: item.nombre || null,
+                        mime_type: item.mime_type || 'image/jpeg',
+                        tamano: item.tamano || null,
                     },
                     type: QueryTypes.INSERT,
                     transaction
                 }
             );
+            results.push(result[0]);
         }
+        return results;
     } catch (error) {
         console.error('Error registering gallery images:', error);
         throw new Error('Error al registrar las imágenes de la galería');

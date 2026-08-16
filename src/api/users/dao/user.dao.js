@@ -107,7 +107,7 @@ const getInfoGalleryByPhotographerId = async (photographerId) => {
         SELECT
             t.id_imagen,
             t.id_servicio,
-            t.thumbnail
+            t.url_thumbnail
 
         FROM fotografo.imagen_servicio t
 
@@ -128,7 +128,7 @@ const getInfoGalleryByPhotographerId = async (photographerId) => {
 
 const loadFullImageById = async (imageId) => {
     const result = await sequelize.query(
-        `SELECT id_imagen, imagen FROM fotografo.imagen_servicio WHERE id_imagen = cast(:id_imagen AS int);`,
+        `SELECT id_imagen, url_imagen, url_thumbnail FROM fotografo.imagen_servicio WHERE id_imagen = cast(:id_imagen AS int);`,
         {
             replacements: { id_imagen: imageId },
             type: QueryTypes.SELECT
