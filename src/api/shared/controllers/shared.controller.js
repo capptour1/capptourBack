@@ -16,6 +16,16 @@ const getCategories = async (req, res) => {
 };
 
 
+const getRoles = async (req, res) => {
+    try {
+        const roles = await SharedDao.getRoles();
+        return successResponse(res, roles, 'Roles obtenidos correctamente');
+    }
+    catch (error) {
+        return errorResponse(res, error);
+    }
+}
+
 
 const getCurrencies = async (req, res) => {
     try {
@@ -57,5 +67,6 @@ export default {
     getCategories,
     getCurrencies,
     getCountries,
-    getGenders
+    getGenders,
+    getRoles
 };

@@ -108,7 +108,7 @@ const getBookingsByUserId = async (id_usuario) => {
         INNER JOIN auth.usuarios u
             ON u.id = f.id_usuario
 
-        INNER JOIN fotografo.tipo_moneda tm
+        INNER JOIN public.tipo_moneda tm
             ON tm.id_moneda = rs.id_moneda
 
         WHERE r.id_cliente = CAST(:id_usuario AS bigint)

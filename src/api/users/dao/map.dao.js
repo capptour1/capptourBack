@@ -97,7 +97,7 @@ const getServicesByPhotographerId = async (photographerId) => {
             tm.codigo,
             tm.simbolo
         FROM fotografo.servicios s
-        INNER JOIN fotografo.tipo_moneda tm
+        INNER JOIN public.tipo_moneda tm
             ON s.id_moneda = tm.id_moneda
         WHERE s.id_fotografo = :photographerId
         AND s.estado = 'A';
@@ -137,7 +137,7 @@ const getServicesByPhotographerIds = async (photographerIds) => {
             ON sc.id_servicio = s.id_servicio
         INNER JOIN catalogo.categoria_servicio cs
             ON cs.id_categoria = sc.id_categoria
-        INNER JOIN fotografo.tipo_moneda tm
+        INNER JOIN public.tipo_moneda tm
             ON s.id_moneda = tm.id_moneda
         WHERE s.estado = 'A'
         AND s.id_fotografo IN (:photographerIds);

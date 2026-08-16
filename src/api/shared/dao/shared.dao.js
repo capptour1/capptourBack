@@ -24,7 +24,7 @@ const getCategories = async () => {
 
 const getCurrencies = async () => {
     const result = await sequelize.query(
-        `SELECT * FROM fotografo.tipo_moneda;`,
+        `SELECT * FROM public.tipo_moneda;`,
         {
             type: QueryTypes.SELECT,
         }
@@ -53,11 +53,21 @@ const getGenders = async () => {
     return result;
 };
 
-
+const getRoles = async () => {
+    const result = await sequelize.query(
+        `SELECT * FROM fotografo.tipo_rol
+        WHERE estado = 'A';`,
+        {
+            type: QueryTypes.SELECT
+        }
+    );
+    return result;
+}
 
 export default {
     getCurrencies,
     getCategories,
     getCountries,
-    getGenders
+    getGenders,
+    getRoles
 };

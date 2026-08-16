@@ -31,7 +31,7 @@ export default function initSockets(server) {
         return next(new Error('Token requerido'));
       }
       const payload = jwt.verify(token, SECRET_KEY);
-      socket.user = { id: payload.userId, role: payload.role };
+      socket.user = { id: payload.userId, userType: payload.userType };
       next();
     } catch (err) {
       console.warn('⚠️  Token inválido en socket:', err.message);

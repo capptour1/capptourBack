@@ -128,8 +128,8 @@ const addServiceRequest = async (req, res) => {
 const getInfoUserById = async (req, res) => {
   try {
     console.log('Get info user by ID controller called', req.body);
-    const { id_usuario, id_rol } = req.body;
-    const userInfo = await UserDAO.getInfoUserById(id_usuario, id_rol);
+    const { id_usuario, tipo_usuario } = req.body;
+    const userInfo = await UserDAO.getInfoUserById(id_usuario, tipo_usuario);
     if (!userInfo) {
       throw new AppError('Información del usuario no encontrada', 404);
     }
@@ -168,7 +168,7 @@ const updateProfile = async (req, res) => {
     console.log('Update info user by ID controller called');
     const {
       id_usuario,
-      id_rol,
+      tipo_usuario,
       nombre_completo,
       descripcion,
       herramientas,
@@ -200,7 +200,7 @@ const updateProfile = async (req, res) => {
     const updatedUser = await UserDAO.updateProfile(id_usuario, info, t);
     const updateTelefono = await UserDAO.updateInfoPhoneByUserId(id_usuario, infoPhone, t);
 
-    if (id_rol === 5) {
+    if (tipo_usuario === 5) {
       const updatedPhotographer = await UserDAO.updateInfoPhotographerById(id_usuario, infoPhotographer, t);
     }
     await t.commit();

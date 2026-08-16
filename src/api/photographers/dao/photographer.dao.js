@@ -84,7 +84,7 @@ const getInfoSessionPhotoDbById = async (id_usuario) => {
         INNER JOIN reserva.reserva_servicio rs
             ON rs.id_reserva = r.id_reserva
 
-        INNER JOIN fotografo.tipo_moneda tm
+        INNER JOIN public.tipo_moneda tm
             ON tm.id_moneda = rs.id_moneda
 
         WHERE f.id_usuario = CAST(:id_usuario AS int)
@@ -303,7 +303,7 @@ const getInfoServices = async (userId) => {
         FROM fotografo.servicios s
         INNER JOIN fotografo.fotografos f
             ON f.id = s.id_fotografo
-        INNER JOIN fotografo.tipo_moneda tm
+        INNER JOIN public.tipo_moneda tm
             ON tm.id_moneda = s.id_moneda
         WHERE f.id_usuario = cast(:id_usuario AS int)
         AND s.estado = 'A';

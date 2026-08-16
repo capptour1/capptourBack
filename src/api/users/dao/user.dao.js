@@ -15,7 +15,7 @@ const getInfoPhotoById = async (photographerId) => {
             f.id AS id_fotografo,
             u.nombre_completo AS nombre,
             u.foto_perfil AS thumbnail,
-            u.rol_id AS id_rol,
+            u.tipo_usuario,
             u.fecha_nacimiento,
 
             f.descripcion AS biografia,
@@ -85,7 +85,7 @@ const getInfoServicesByPhotographerId = async (photographerId) => {
             ON sc.id_servicio = s.id_servicio
         INNER JOIN catalogo.categoria_servicio cs
             ON cs.id_categoria = sc.id_categoria
-        INNER JOIN fotografo.tipo_moneda tm
+        INNER JOIN public.tipo_moneda tm
             ON tm.id_moneda = s.id_moneda
 
         WHERE s.id_fotografo = :id_fotografo
@@ -203,13 +203,13 @@ const getBasicInfoServiceById = async (serviceId) => {
 
 
 
-const getInfoUserById = async (userId, id_rol) => {
+const getInfoUserById = async (userId, tipo_usuario) => {
     let query = '';
-    if (id_rol === 3) {
+    if (tipo_usuario === 3) {
         query = `
         SELECT u.id as id_usuario, u.nombre_completo, u.email,
         u.foto_perfil as thumbnail,
-        u.rol_id as id_rol,
+        u.tipo_usuario as tipo_usuario,
         u.fecha_nacimiento, u.foto_perfil,
         p.id_pais as pais_telefono,
         p.codigo_telefono, ut.telefono, 
@@ -223,24 +223,28 @@ const getInfoUserById = async (userId, id_rol) => {
         LEFT JOIN public.generos g ON u.id_genero = g.id_genero
         WHERE u.id = cast(:id_usuario AS int);
         `;
-    } else if (id_rol === 5) {
+    } else if (tipo_usuario === 5) {
         query = `
         SELECT u.id as id_usuario, u.nombre_completo, u.email,
         u.foto_perfil as thumbnail,
         f.id AS id_fotografo,
-        u.rol_id as id_rol, l.longitud, l.latitud,
+        u.tipo_usuario as tipo_usuario, l.longitud, l.latitud,
         u.fecha_nacimiento, u.foto_perfil,
         p.id_pais as pais_telefono,
         p.codigo_telefono, ut.telefono, 
         p2.id_pais as pais_usuario, p2.nombre as nombre_pais_usuario,
         p2.iso_code,
-        f.descripcion, f.herramientas,
+        f.descripcion, f.herramientas, 
+        tr.descripcion AS rol, tr.id_rol,
+        te.descripcion AS experiencia, te.id_experiencia,
         g.id_genero, g.descripcion as genero
         FROM auth.usuarios u
         LEFT JOIN auth.usuario_telefono ut ON u.id = ut.id_usuario
         LEFT JOIN public.paises p ON ut.id_pais = p.id_pais
         LEFT JOIN public.paises p2 ON u.id_pais = p2.id_pais
-        LEFT JOIN fotografo.fotografos f ON u.id = f.id_usuario
+        INNER JOIN fotografo.fotografos f ON u.id = f.id_usuario
+        INNER JOIN fotografo.tipo_rol tr ON f.id_rol = tr.id_rol
+        INNER JOIN fotografo.tipo_experiencia te ON f.id_experiencia = te.id_experiencia
         LEFT JOIN public.generos g ON u.id_genero = g.id_genero
         LEFT JOIN fotografo.localizacion l ON f.id = l.id_fotografo
         WHERE u.id = cast(:id_usuario AS int);

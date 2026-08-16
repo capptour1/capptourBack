@@ -40,7 +40,7 @@ const login = async (req, res) => {
     const photographerInfo = await AuthDAO.find_photographer_by_user_id(user.id);
 
     const token = jwt.sign(
-      { userId: user.id, role: user.rol_id },
+      { userId: user.id, userType: user.tipo_usuario },
       SECRET_KEY,
       { expiresIn: TOKEN_EXPIRY }
     );
@@ -48,7 +48,7 @@ const login = async (req, res) => {
     return successResponse(res, {
       token,
       userId: user.id,
-      role: user.rol_id,
+      userType: user.tipo_usuario,
       photographerId: photographerInfo ? photographerInfo.id : null,
     }, 'Login exitoso');
 
@@ -149,7 +149,7 @@ const socialLogin = async (req, res) => {
 
     // 6. Generar JWT con el mismo formato que el login normal
     const token = jwt.sign(
-      { userId: user.id, role: user.rol_id },
+      { userId: user.id, userType: user.tipo_usuario },
       SECRET_KEY,
       { expiresIn: TOKEN_EXPIRY }
     );
@@ -157,7 +157,7 @@ const socialLogin = async (req, res) => {
     return successResponse(res, {
       token,
       userId: user.id,
-      role: user.rol_id,
+      userType: user.tipo_usuario,
       photographerId: photographerInfo ? photographerInfo.id : null,
     }, 'Login social exitoso');
 
