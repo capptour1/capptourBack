@@ -3,3 +3,6 @@ node_modules/
 
 # Environment variables
 .env
+
+# Storage files (uploaded content)
+storage/

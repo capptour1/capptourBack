@@ -29,7 +29,6 @@ if (!fs.existsSync(comprobantesDir)) {
   fs.mkdirSync(comprobantesDir);
   console.log('📁 Carpeta "uploads/comprobantes" creada.');
 }
-
 app.use((req, res, next) => {
 
     const inicio = Date.now();
@@ -49,6 +48,14 @@ app.use((req, res, next) => {
 });
 // 👉 Servir archivos estáticos (incluyendo comprobantes)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// 👉 Servir archivos del storage (chat, profiles, deliveries, etc.)
+const storagePath = process.env.STORAGE_PATH || './storage';
+if (!fs.existsSync(storagePath)) {
+  fs.mkdirSync(storagePath, { recursive: true });
+  console.log('📁 Carpeta "storage" creada.');
+}
+app.use('/storage', express.static(storagePath));
 
 
 // 👉 Tus rutas API generales
