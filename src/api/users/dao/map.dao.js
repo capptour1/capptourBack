@@ -51,7 +51,7 @@ const searchPhotographers = async (lat, lng) => {
         WHERE l.latitud BETWEEN :minLat AND :maxLat
         AND l.longitud BETWEEN :minLng AND :maxLng
         AND f.is_active = true
-        AND u.rol_id = 5
+        AND u.tipo_usuario = 5
 
         ORDER BY distancia;
       `;

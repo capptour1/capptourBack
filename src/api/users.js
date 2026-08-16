@@ -107,9 +107,9 @@ router.post('/verify', async (req, res) => {
    NOTA: hashea password en producción (bcrypt)
 ========================= */
 router.post('/', async (req, res) => {
-  const { nombre, email, password, rol_id, telefono, servicio_id } = req.body;
+  const { nombre, email, password, tipo_usuario, telefono, servicio_id } = req.body;
 
-  if (!nombre || !email || !password || !rol_id || !telefono || !servicio_id) {
+  if (!nombre || !email || !password || !tipo_usuario || !telefono || !servicio_id) {
     return res.status(400).json({ error: 'Faltan campos requeridos' });
   }
 
@@ -118,12 +118,12 @@ router.post('/', async (req, res) => {
 
     const insertQuery = `
       INSERT INTO auth.usuarios
-      (nombre_completo, email, password, rol_id, telefono, servicio_id, creado_en, estado, verificado, codigo_verificacion)
+      (nombre_completo, email, password, tipo_usuario, telefono, servicio_id, creado_en, estado, verificado, codigo_verificacion)
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'A', false, $7)
       RETURNING *;
     `;
 
-    const values = [nombre, email, password, rol_id, telefono, servicio_id ?? null, codigo];
+    const values = [nombre, email, password, tipo_usuario, telefono, servicio_id ?? null, codigo];
     const result = await pool.query(insertQuery, values);
 
     await sendVerificationEmail({ to: email, codigo, brand: 'Capptour' });
@@ -175,7 +175,7 @@ router.post('/register/fotografo', upload.single('hoja_vida'), async (req, res) 
   const client = await pool.connect();
 
   try {
-    const { nombre, email, password, rol_id, telefono, descripcion, tarifas } = req.body;
+    const { nombre, email, password, tipo_usuario, telefono, descripcion, tarifas } = req.body;
     if (!req.file) return res.status(400).json({ error: 'No se adjuntó hoja de vida (PDF)' });
 
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
@@ -185,10 +185,10 @@ router.post('/register/fotografo', upload.single('hoja_vida'), async (req, res) 
     // 1) Usuario
     const userResult = await client.query(
       `INSERT INTO auth.usuarios
-       (nombre_completo, email, password, rol_id, telefono, creado_en, estado, verificado, codigo_verificacion)
+       (nombre_completo, email, password, tipo_usuario, telefono, creado_en, estado, verificado, codigo_verificacion)
        VALUES ($1, $2, $3, $4, $5, NOW(), 'A', false, $6)
        RETURNING id, email`,
-      [nombre, email, password, rol_id, telefono, codigo]
+      [nombre, email, password, tipo_usuario, telefono, codigo]
     );
 
     const id_usuario = userResult.rows[0].id;
@@ -224,7 +224,7 @@ router.post('/info', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT u.id, u.nombre_completo, u.email, u.telefono, u.rol_id,
+      `SELECT u.id, u.nombre_completo, u.email, u.telefono, u.tipo_usuario,
               f.descripcion, f.tarifas, f.hoja_vida
        FROM auth.usuarios u
        LEFT JOIN fotografo.fotografos f ON u.id = f.id_usuario

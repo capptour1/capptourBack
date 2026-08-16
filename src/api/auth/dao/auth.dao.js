@@ -105,7 +105,7 @@ const find_user_by_provider = async (provider, providerId) => {
 const register_social_user = async (name, email, provider, providerId, transaction) => {
   try {
     const result = await sequelize.query(
-      `INSERT INTO auth.usuarios (nombre_completo, email, proveedor_auth, proveedor_id, rol_id)
+      `INSERT INTO auth.usuarios (nombre_completo, email, proveedor_auth, proveedor_id, tipo_usuario)
        VALUES (:name, :email, :provider, :providerId, 3)
        RETURNING *;`,
       {
@@ -145,7 +145,7 @@ const register_client = async (name, email, password, transaction) => {
     console.log('Register client DAO called');
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await sequelize.query(
-      `INSERT INTO auth.usuarios (nombre_completo, email, password, rol_id)
+      `INSERT INTO auth.usuarios (nombre_completo, email, password, tipo_usuario)
        VALUES (:name, :email, :password, 3)
        RETURNING *;`,
       {
@@ -166,7 +166,7 @@ const register_user_photographer = async (name, email, password, transaction) =>
     console.log('Register photographer user DAO called');
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await sequelize.query(
-      `INSERT INTO auth.usuarios (nombre_completo, email, password, rol_id)
+      `INSERT INTO auth.usuarios (nombre_completo, email, password, tipo_usuario)
        VALUES (:name, :email, :password, 5)
        RETURNING *;`,
       {
