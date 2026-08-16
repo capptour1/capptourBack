@@ -220,13 +220,13 @@ const uploadFile = async (req, res) => {
     }
 
     // Subir archivo principal
-    const uploaded = await storageService.upload(file.buffer, folder, file.originalname);
+    const uploaded = await storageService.upload(file.buffer, folder, file.mimetype);
 
     // Generar thumbnail para imágenes
     let thumbnailPath = null;
     if (messageType === 'image') {
       const thumbBuffer = await createThumbnail(file);
-      const thumbResult = await storageService.upload(thumbBuffer, 'chat/thumbnails', file.originalname);
+      const thumbResult = await storageService.upload(thumbBuffer, 'chat/thumbnails', file.mimetype);
       thumbnailPath = thumbResult.path;
     }
 

@@ -349,7 +349,7 @@ const submitServiceRating = async (ratingData) => {
 
 const getFullImagesByBookingId = async (id_reserva) => {
     const images = await sequelize.query(
-        ` SELECT i.id_imagen
+        ` SELECT i.id_imagen, i.url_imagen, i.url_thumbnail, i.nombre, i.mime_type, i.tamano
         FROM reserva.imagenes_entrega i
         INNER JOIN reserva.entrega e ON i.id_entrega = e.id_entrega
         WHERE e.id_reserva = cast(:id_reserva AS int);
@@ -364,7 +364,7 @@ const getFullImagesByBookingId = async (id_reserva) => {
 
 const getImageById = async (id_imagen) => {
     const result = await sequelize.query(
-        `SELECT imagen FROM reserva.imagenes_entrega
+        `SELECT url_imagen, url_thumbnail, nombre, mime_type FROM reserva.imagenes_entrega
      WHERE id_imagen = :id_imagen`,
         {
             replacements: { id_imagen },
@@ -372,7 +372,7 @@ const getImageById = async (id_imagen) => {
         }
     );
 
-    return result[0]?.imagen;
+    return result[0] || null;
 };
 
 const createInstantSession = async (data, transaction) => {

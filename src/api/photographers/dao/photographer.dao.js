@@ -226,15 +226,18 @@ const uploadImagesDelivery = async (dataImages, transaction) => {
 
 const uploadImageDelivery = async (dataPicture, transaction) => {
     const result = await sequelize.query(
-        `INSERT INTO reserva.imagenes_entrega (id_entrega, imagen, thumbnail)
-        VALUES (cast(:id_entrega AS int), :imagen, :thumbnail)
-            RETURNING id_imagen, thumbnail
+        `INSERT INTO reserva.imagenes_entrega (id_entrega, url_imagen, url_thumbnail, nombre, mime_type, tamano)
+        VALUES (cast(:id_entrega AS int), :url_imagen, :url_thumbnail, :nombre, :mime_type, :tamano)
+            RETURNING id_imagen, url_imagen, url_thumbnail, nombre, mime_type, tamano
         `,
         {
             replacements: {
                 id_entrega: dataPicture.id_entrega,
-                imagen: dataPicture.imagen,
-                thumbnail: dataPicture.thumbnail
+                url_imagen: dataPicture.url_imagen,
+                url_thumbnail: dataPicture.url_thumbnail,
+                nombre: dataPicture.nombre || null,
+                mime_type: dataPicture.mime_type || 'image/jpeg',
+                tamano: dataPicture.tamano || null,
             },
             type: QueryTypes.INSERT,
             transaction
@@ -274,6 +277,17 @@ const completeSession = async (id_reserva, transaction) => {
 }
 
 const deleteImageDelivery = async (id_imagen, transaction) => {
+    // Obtener rutas antes de eliminar para poder borrar archivos
+    const [existing] = await sequelize.query(
+        `SELECT url_imagen, url_thumbnail FROM reserva.imagenes_entrega
+        WHERE id_imagen = cast(:id_imagen AS int)
+        `,
+        {
+            replacements: { id_imagen },
+            type: QueryTypes.SELECT,
+        }
+    );
+
     await sequelize.query(
         `DELETE FROM reserva.imagenes_entrega
         WHERE id_imagen = cast(:id_imagen AS int)
@@ -284,6 +298,8 @@ const deleteImageDelivery = async (id_imagen, transaction) => {
             transaction
         }
     );
+
+    return existing || null;
 }
 
 const getInfoServices = async (userId) => {

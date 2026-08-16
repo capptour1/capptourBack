@@ -59,13 +59,7 @@ const getBookingsByUserId = async (id_usuario) => {
                                         json_build_object(
                                             'id_entrega', ie.id_entrega,
                                             'id_imagen', ie.id_imagen,
-                                            'thumbnail',
-                                                regexp_replace(
-                                                    encode(ie.thumbnail, 'base64'),
-                                                    E'[\\n\\r]',
-                                                    '',
-                                                    'g'
-                                                )
+                                            'url_thumbnail', ie.url_thumbnail
                                         )
                                         ORDER BY ie.id_imagen
                                     )
@@ -160,7 +154,7 @@ const getImagesDeliveryByIds = async (deliveryIds) => {
 
             id_imagen,
             id_entrega,
-            thumbnail
+            url_thumbnail
 
         FROM reserva.imagenes_entrega
 

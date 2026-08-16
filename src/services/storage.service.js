@@ -4,42 +4,83 @@
  * Servicio central de almacenamiento de archivos.
  * Toda la aplicación usa este servicio para subir, obtener URLs y eliminar archivos.
  *
+ * El StorageService es el único responsable de generar nombres de archivo.
+ * Los consumidores nunca deben depender del nombre original para el almacenamiento físico.
+ *
  * Configuración vía variables de entorno:
  *   STORAGE_PATH      — ruta del directorio de almacenamiento (default: ./storage)
  *   STORAGE_BASE_URL  — URL base para acceder a los archivos (default: http://localhost:3000/storage)
  *
  * Organización física:
  *   storage/{folder}/{año}/{mes}/{uuid}.{ext}
- *
- * Ejemplo:
- *   storage/chat/2026/08/a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpg
  */
 import path from 'path';
 import fs from 'fs/promises';
 import { randomUUID } from 'crypto';
 
 const STORAGE_PATH = process.env.STORAGE_PATH || './storage';
-const STORAGE_URL = process.env.STORAGE_BASE_URL || 'http://localhost:3000/storage';
+const STORAGE_URL = (process.env.STORAGE_BASE_URL || 'http://localhost:3000/storage').replace(/\/+$/, '');
+
+// ─── Mapeo MIME → extensión ───────────────────────────────────────────────────
+
+const MIME_TO_EXT = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+  'video/mp4': '.mp4',
+  'video/quicktime': '.mov',
+  'audio/mpeg': '.mp3',
+  'audio/mp4': '.m4a',
+  'audio/ogg': '.ogg',
+  'application/pdf': '.pdf',
+  'application/msword': '.doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/zip': '.zip',
+};
+
+/**
+ * Resuelve la extensión a partir de un MIME type, una extensión directa,
+ * o un nombre de archivo (backward compatible).
+ */
+function resolveExtension(mimeOrExt) {
+  if (!mimeOrExt) return '';
+
+  // Si es un MIME type conocido
+  if (MIME_TO_EXT[mimeOrExt]) return MIME_TO_EXT[mimeOrExt];
+
+  // Si ya es una extensión (empieza con punto)
+  if (mimeOrExt.startsWith('.')) return mimeOrExt.toLowerCase();
+
+  // Si es un MIME genérico no mapeado (ej: 'application/octet-stream')
+  if (mimeOrExt.includes('/')) return '';
+
+  // Backward compatible: si parece un nombre de archivo, extraer extensión
+  const ext = path.extname(mimeOrExt);
+  return ext ? ext.toLowerCase() : '';
+}
+
+// ─── API Pública ──────────────────────────────────────────────────────────────
+
 /**
  * Sube un archivo al almacenamiento.
  *
  * @param {Buffer} buffer — contenido binario del archivo
- * @param {string} folder — carpeta lógica (ej: 'chat', 'profiles', 'deliveries')
- * @param {string} originalName — nombre original del archivo (se usa solo para extraer extensión)
+ * @param {string} folder — carpeta lógica (ej: 'chat/images', 'deliveries/images')
+ * @param {string} mimeOrExt — MIME type ('image/jpeg'), extensión ('.jpg') o nombre de archivo
  * @param {object} [options] — opciones adicionales
- * @param {string} [options.key] — si se proporciona, usa esta ruta fija en vez de generar UUID.
- *                                  Reemplaza el archivo existente (comportamiento PUT por key).
+ * @param {string} [options.key] — si se proporciona, usa esta ruta fija (modo reemplazo)
  * @returns {{ path: string, url: string }} — ruta relativa y URL pública
  */
-const upload = async (buffer, folder, originalName, { key } = {}) => {
+const upload = async (buffer, folder, mimeOrExt, { key } = {}) => {
   let relativePath;
 
   if (key) {
-    // Modo reemplazo: usa la key proporcionada como ruta fija
     relativePath = key;
   } else {
-    // Modo inmutable: genera UUID con organización año/mes
-    const ext = path.extname(originalName).toLowerCase();
+    const ext = resolveExtension(mimeOrExt);
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -58,12 +99,11 @@ const upload = async (buffer, folder, originalName, { key } = {}) => {
 /**
  * Construye la URL pública a partir de una ruta relativa almacenada en BD.
  *
- * @param {string} relativePath — ruta almacenada en la columna `url` de adjuntos
- * @returns {string} — URL completa
+ * @param {string} relativePath — ruta almacenada en la base de datos
+ * @returns {string|null} — URL completa o null
  */
 const getUrl = (relativePath) => {
   if (!relativePath) return null;
-  // Si ya es una URL absoluta, retornar tal cual
   if (relativePath.startsWith('http')) return relativePath;
   return `${STORAGE_URL}/${relativePath}`;
 };

@@ -3,6 +3,7 @@ import AppError from '../../../utils/appError.js';
 import HelperResponse from '../../../utils/helperResponse.js';
 import sharp from 'sharp';
 import userDao from '../dao/user.dao.js';
+import storageService from '../../../services/storage.service.js';
 
 const { successResponse, errorResponse } = HelperResponse;
 
@@ -251,7 +252,6 @@ const submitServiceRating = async (req, res) => {
 };
 
 const getFullImagesByBookingId = async (req, res) => {
-  console.log('Get full images by booking ID controller called', req.body);
   try {
     const { id_reserva } = req.body;
     if (!id_reserva) {
@@ -259,7 +259,15 @@ const getFullImagesByBookingId = async (req, res) => {
     }
 
     const images = await userDao.getFullImagesByBookingId(id_reserva);
-    return successResponse(res, images, 'Full images obtained successfully');
+
+    // Resolver URLs públicas
+    const resolved = images.map(img => ({
+      ...img,
+      url_imagen: img.url_imagen ? storageService.getUrl(img.url_imagen) : null,
+      url_thumbnail: img.url_thumbnail ? storageService.getUrl(img.url_thumbnail) : null,
+    }));
+
+    return successResponse(res, resolved, 'Full images obtained successfully');
   }
   catch (error) {
     return errorResponse(res, error.message, 500);
@@ -267,18 +275,18 @@ const getFullImagesByBookingId = async (req, res) => {
 };
 
 const getImageById = async (req, res) => {
-  console.log('Get image by ID controller called with ID:', req.params.id);
   try {
     const { id } = req.params;
 
-    const imageBuffer = await userDao.getImageById(id);
+    const imageData = await userDao.getImageById(id);
 
-    if (!imageBuffer) {
+    if (!imageData) {
       return res.status(404).send('Image not found');
     }
 
-    res.set('Content-Type', 'image/jpeg');
-    res.send(imageBuffer);
+    // Redirigir a la URL pública del archivo
+    const url = storageService.getUrl(imageData.url_imagen);
+    return res.redirect(url);
 
   } catch (error) {
     return errorResponse(res, error.message, 500);

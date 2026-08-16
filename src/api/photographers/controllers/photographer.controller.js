@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import media from '../../../utils/media.js';
 import photographerDao from '../dao/photographer.dao.js';
 import notificationService from '../../notifications/notification.service.js';
+import storageService from '../../../services/storage.service.js';
 
 const { successResponse, errorResponse } = HelperResponse;
 
@@ -165,18 +166,31 @@ const uploadImageDelivery = async (req, res) => {
     }
 
     const delivery = await PhotographerDAO.createDelivery(id_reserva, t);
+
+    // Subir imagen al StorageService
+    const uploaded = await storageService.upload(file.buffer, 'deliveries/images', file.mimetype);
+
+    // Generar y subir thumbnail
     const thumbnailBuffer = await createThumbnail(file);
-    const dataGallery = {
+    const thumbResult = await storageService.upload(thumbnailBuffer, 'deliveries/thumbnails', file.mimetype);
+
+    // Persistir solo rutas relativas
+    const uploadedImage = await PhotographerDAO.uploadImageDelivery({
       id_entrega: delivery.id_entrega,
-      imagen: file.buffer,
-      thumbnail: thumbnailBuffer
-    };
-    let uploadedImage = await PhotographerDAO.uploadImageDelivery(dataGallery, t);
+      url_imagen: uploaded.path,
+      url_thumbnail: thumbResult.path,
+      nombre: file.originalname,
+      mime_type: file.mimetype,
+      tamano: file.size,
+    }, t);
+
+    // Respuesta con URLs resueltas
     const resp = {
       ...uploadedImage,
-      url: `capptour.app/delivery/session/${id_reserva}`
-    }
-    console.log('Image uploaded for delivery', resp);
+      url_imagen: storageService.getUrl(uploadedImage.url_imagen),
+      url_thumbnail: storageService.getUrl(uploadedImage.url_thumbnail),
+    };
+
     await t.commit();
     return successResponse(res, resp, 'Imagen subida correctamente');
   }
@@ -212,8 +226,18 @@ const uploadLinksDelivery = async (req, res) => {
 const deleteImageDelivery = async (req, res) => {
   try {
     const { id_imagen } = req.body;
-    console.log('Delete image delivery controller called', req.body);
-    await PhotographerDAO.deleteImageDelivery(id_imagen);
+    const deleted = await PhotographerDAO.deleteImageDelivery(id_imagen);
+
+    // Eliminar archivos físicos si existen
+    if (deleted) {
+      if (deleted.url_imagen) {
+        await storageService.remove(deleted.url_imagen);
+      }
+      if (deleted.url_thumbnail) {
+        await storageService.remove(deleted.url_thumbnail);
+      }
+    }
+
     return successResponse(res, { message: 'Imagen de entrega eliminada correctamente' }, 'Imagen de entrega eliminada correctamente');
   }
   catch (error) {
