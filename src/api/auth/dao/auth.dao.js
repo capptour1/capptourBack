@@ -234,13 +234,16 @@ const register_gallery_images_v2 = async (imagesData, transaction) => {
   try {
     for (const item of imagesData) {
       await sequelize.query(
-        `INSERT INTO fotografo.imagen_servicio (id_servicio, imagen, thumbnail)
-         VALUES (:id_servicio, :imagen, :thumbnail)`,
+        `INSERT INTO fotografo.imagen_servicio (id_servicio, url_imagen, url_thumbnail, nombre, mime_type, tamano)
+         VALUES (:id_servicio, :url_imagen, :url_thumbnail, :nombre, :mime_type, :tamano)`,
         {
           replacements: {
-            id_servicio: item.id_servicio,
-            imagen: item.imagen.buffer,
-            thumbnail: item.thumbnail
+            id_servicio:   item.id_servicio,
+            url_imagen:    item.url_imagen,
+            url_thumbnail: item.url_thumbnail,
+            nombre:        item.nombre    || null,
+            mime_type:     item.mime_type || 'image/jpeg',
+            tamano:        item.tamano    || null,
           },
           type: QueryTypes.INSERT,
           transaction

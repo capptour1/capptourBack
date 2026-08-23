@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import appleSignin from 'apple-signin-auth';
 import media from '../../../utils/media.js';
+import storageService from '../../../services/storage.service.js';
 
 const { createThumbnail } = media;
 const { successResponse, errorResponse } = HelperResponse;
@@ -246,10 +247,28 @@ const new_register_photographer = async (req, res) => {
       const imagesData = [];
       for (const file of serviceFiles) {
         const thumbnailBuffer = await createThumbnail(file);
+
+        // Subir imagen original al storage
+        const uploaded = await storageService.upload(
+          file.buffer,
+          'servicios/imagenes',
+          file.mimetype
+        );
+
+        // Subir thumbnail al storage
+        const thumbUploaded = await storageService.upload(
+          thumbnailBuffer,
+          'servicios/thumbnails',
+          'image/jpeg'
+        );
+
         imagesData.push({
-          id_servicio: insertedService.id_servicio,
-          imagen: file,
-          thumbnail: thumbnailBuffer,
+          id_servicio:   insertedService.id_servicio,
+          url_imagen:    uploaded.path,
+          url_thumbnail: thumbUploaded.path,
+          nombre:        file.originalname || null,
+          mime_type:     file.mimetype     || 'image/jpeg',
+          tamano:        file.size         || null,
         });
       }
 
