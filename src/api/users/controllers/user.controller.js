@@ -182,6 +182,7 @@ const updateProfile = async (req, res) => {
     const {
       id_usuario,
       tipo_usuario,
+      id_rol,
       nombre_completo,
       descripcion,
       herramientas,
@@ -202,7 +203,8 @@ const updateProfile = async (req, res) => {
 
     const infoPhotographer = {
       descripcion,
-      herramientas
+      herramientas,
+      id_rol,
     };
 
     const infoPhone = {

@@ -322,7 +322,7 @@ const updateInfoPhoneByUserId = async (userId, infoPhone, t) => {
 
 const updateInfoPhotographerById = async (userId, infoPhotographer, t) => {
     const result = await sequelize.query(
-        `UPDATE fotografo.fotografos SET descripcion = :descripcion, herramientas = :herramientas WHERE id_usuario = cast(:id_usuario AS int) RETURNING id;`,
+        `UPDATE fotografo.fotografos SET descripcion = :descripcion, herramientas = :herramientas, id_rol = :id_rol WHERE id_usuario = cast(:id_usuario AS int) RETURNING id;`,
         {
             replacements: { ...infoPhotographer, id_usuario: userId },
             type: QueryTypes.UPDATE,
