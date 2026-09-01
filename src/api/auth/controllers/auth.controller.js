@@ -1,4 +1,5 @@
 import AuthDAO from '../dao/auth.dao.js';
+import PhotographerDAO from '../../photographers/dao/photographer.dao.js';
 import AppError from '../../../utils/appError.js';
 import HelperResponse from '../../../utils/helperResponse.js';
 import jwt from 'jsonwebtoken';
@@ -226,13 +227,23 @@ const new_register_photographer = async (req, res) => {
       t
     );
 
+    // La moneda de TODOS los servicios de este registro la decide el backend
+    // a partir del país del fotógrafo (auth.usuarios.id_pais), con USD como
+    // fallback. Como todos los servicios pertenecen al mismo fotógrafo, se
+    // resuelve UNA sola vez. Cualquier currency_id enviado por el cliente se
+    // IGNORA a propósito.
+    const id_moneda = await PhotographerDAO.getDefaultCurrencyByUserId(
+      personal.id,
+      t
+    );
+
     for (let i = 0; i < services.length; i++) {
       const service = services[i];
       const dataService = {
         nombre: service.name,
         descripcion: service.description,
         precio_hora: service.price_hour,
-        id_moneda: service.currency_id,
+        id_moneda,
         editadas: service.edited,
         no_editadas: service.unedited,
         id_fotografo: infoPhoto.id,

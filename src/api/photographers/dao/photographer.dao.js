@@ -433,6 +433,49 @@ const addService = async (service, transaction) => {
     }
 };
 
+/**
+ * Resuelve la moneda predeterminada que debe usarse al crear un servicio
+ * para un fotógrafo, a partir del país del usuario.
+ *
+ * Regla: usuario -> auth.usuarios.id_pais -> public.paises.id_moneda.
+ * Si el país no tiene moneda configurada, o el usuario no tiene país,
+ * se usa USD como fallback (obtenido dinámicamente por codigo = 'USD',
+ * el id_moneda de USD NO se hardcodea porque es un dato de catálogo).
+ *
+ * La moneda actual del fotógrafo (fotografo.localizacion) NO interviene:
+ * la moneda depende exclusivamente de auth.usuarios.id_pais.
+ *
+ * @param {number} id_usuario id de auth.usuarios
+ * @param {object} [transaction] transacción sequelize opcional
+ * @returns {Promise<number|undefined>} id_moneda a persistir en el servicio
+ */
+const getDefaultCurrencyByUserId = async (id_usuario, transaction) => {
+    const result = await sequelize.query(
+        `
+        SELECT COALESCE(
+            (
+                SELECT p.id_moneda
+                FROM auth.usuarios u
+                LEFT JOIN public.paises p ON p.id_pais = u.id_pais
+                WHERE u.id = cast(:id_usuario AS int)
+            ),
+            (
+                SELECT id_moneda
+                FROM public.tipo_moneda
+                WHERE codigo = 'USD'
+                LIMIT 1
+            )
+        ) AS id_moneda;
+        `,
+        {
+            replacements: { id_usuario },
+            type: QueryTypes.SELECT,
+            transaction,
+        }
+    );
+    return result[0]?.id_moneda;
+};
+
 const addServiceCategories = async (serviceId, categories, transaction) => {
     for (const idCategoria of categories) {
         await sequelize.query(
@@ -507,6 +550,7 @@ export default {
     getInfoServices,
     getInfoGallery,
     addService,
+    getDefaultCurrencyByUserId,
     addServiceCategories,
     addGalleryImages,
     getLocations,

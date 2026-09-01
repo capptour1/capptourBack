@@ -311,13 +311,24 @@ const addService = async (req, res) => {
     }
 
     // ===========================
+    // Moneda (determinada por backend)
+    // ===========================
+    // La moneda del servicio la decide exclusivamente el backend a partir
+    // del país del fotógrafo (auth.usuarios.id_pais), con USD como fallback.
+    // Cualquier id_moneda enviado por el cliente se IGNORA a propósito.
+    const id_moneda = await PhotographerDAO.getDefaultCurrencyByUserId(
+      servicio.id_usuario,
+      t,
+    );
+
+    // ===========================
     // Servicio
     // ===========================
     const dataService = {
       nombre: servicio.nombre,
       descripcion: servicio.descripcion,
       precio_hora: servicio.precio_hora,
-      id_moneda: servicio.id_moneda,
+      id_moneda,
       editadas: servicio.editadas,
       no_editadas: servicio.no_editadas,
       id_fotografo: userInfo.id_fotografo,
