@@ -1,4 +1,5 @@
 import UserDAO from '../dao/user.dao.js';
+import PhotographerDAO from '../../photographers/dao/photographer.dao.js';
 import AppError from '../../../utils/appError.js';
 import HelperResponse from '../../../utils/helperResponse.js';
 import sharp from 'sharp';
@@ -356,6 +357,55 @@ const createInstantSession = async (req, res) => {
 };
 
 
+/**
+ * Permiso efectivo de cámara de una reserva (tabla reserva.reserva_camara).
+ * Solo el cliente de la reserva o su fotógrafo asignado pueden consultarlo
+ * (req.user lo establece authMiddleware). Sin filas → { activo: false }:
+ * el DEFAULT 'A' de la columna no se aplica retroactivamente.
+ */
+const getCameraPermission = async (req, res) => {
+    try {
+        const { id_reserva } = req.body;
+        const userId = Number(req.user?.id);
+
+        if (!id_reserva) {
+            throw new AppError('id_reserva es requerido', 400);
+        }
+        if (!userId) {
+            throw new AppError('Usuario no autenticado', 401);
+        }
+
+        const booking = await UserDAO.getBookingParties(id_reserva);
+        if (!booking) {
+            throw new AppError('Reserva no encontrada', 404);
+        }
+
+        const isClient = Number(booking.id_cliente) === userId;
+
+        let isPhotographer = false;
+        if (!isClient) {
+            const photographerId = await PhotographerDAO.getPhotographerIdByUser(userId);
+            isPhotographer = photographerId !== null && Number(booking.id_fotografo) === Number(photographerId);
+        }
+
+        if (!isClient && !isPhotographer) {
+            throw new AppError('No autorizado para esta reserva', 403);
+        }
+
+        const row = await UserDAO.getEffectiveCameraPermission(id_reserva);
+        const activo = row !== null && row.estado === 'A';
+
+        return successResponse(
+            res,
+            { id_reserva: Number(id_reserva), activo, estado: row ? row.estado : null },
+            'Permiso de cámara consultado correctamente'
+        );
+    } catch (error) {
+        return errorResponse(res, error);
+    }
+};
+
+
 export default {
   getInfoPhotoById,
   getServicesGalleryByPhotographerId,
@@ -368,5 +418,6 @@ export default {
   getFullImagesByBookingId,
   getImageById,
   createInstantSession,
+  getCameraPermission,
 
 };

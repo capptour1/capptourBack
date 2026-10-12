@@ -3,6 +3,7 @@ import mapController from './controllers/map.controller.js';
 import userController from './controllers/user.controller.js';
 import bookingController from './controllers/booking.controller.js';
 import explorerController from './controllers/explorer.controller.js';
+import authMiddleware from '../../middleware/auth.js';
 
 const router = express.Router();
 
@@ -34,4 +35,5 @@ router.post('/getFullImage', explorerController.getFullImage);
 router.post('/submitServiceRating', userController.submitServiceRating);
 router.post('/getFullImagesByBookingId', userController.getFullImagesByBookingId);
 router.get('/images/:id', userController.getImageById);
+router.post('/camera-permission', authMiddleware, userController.getCameraPermission);
 export default router;

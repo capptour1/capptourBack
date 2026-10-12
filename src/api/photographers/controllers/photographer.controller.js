@@ -409,6 +409,67 @@ const getLocations = async (req, res) => {
   }
 };
 
+/**
+ * Activa o desactiva el permiso de cámara de una reserva
+ * (tabla reserva.reserva_camara). Solo el fotógrafo asignado a la reserva
+ * puede cambiarlo (req.user lo establece authMiddleware). Cada cambio es un
+ * INSERT que conserva el histórico; la fila efectiva es la más reciente.
+ * Tras el cambio se notifica al cliente de la reserva.
+ */
+const setCameraPermission = async (req, res) => {
+  let t;
+  try {
+    const { id_reserva, estado } = req.body;
+    const userId = Number(req.user?.id);
+
+    if (!id_reserva) {
+      throw new AppError('id_reserva es requerido', 400);
+    }
+    if (!userId) {
+      throw new AppError('Usuario no autenticado', 401);
+    }
+    if (estado !== 'A' && estado !== 'I') {
+      throw new AppError("estado debe ser 'A' (activo) o 'I' (inactivo)", 400);
+    }
+
+    const booking = await PhotographerDAO.getBookingOwner(id_reserva);
+    if (!booking) {
+      throw new AppError('Reserva no encontrada', 404);
+    }
+
+    const photographerId = await PhotographerDAO.getPhotographerIdByUser(userId);
+    if (photographerId === null || Number(booking.id_fotografo) !== Number(photographerId)) {
+      throw new AppError('Solo el fotógrafo asignado puede cambiar este permiso', 403);
+    }
+
+    t = await PhotographerDAO.start_transaction();
+    const row = await PhotographerDAO.insertCameraPermission(id_reserva, estado, t);
+    await t.commit();
+
+    notificationService.send({
+      userId: booking.id_cliente,
+      tipo: 'session',
+      titulo: estado === 'A' ? 'Cámara autorizada' : 'Cámara desactivada',
+      mensaje: estado === 'A'
+        ? 'El fotógrafo autorizó la cámara para tu sesión'
+        : 'El fotógrafo desactivó la cámara para tu sesión',
+      action: 'OPEN_BOOKING',
+      payload: { bookingId: Number(id_reserva), cameraPermission: estado },
+    }).catch(err => console.error('Error sending camera permission notification:', err));
+
+    return successResponse(
+      res,
+      { id_reserva: Number(id_reserva), activo: estado === 'A', estado },
+      'Permiso de cámara actualizado correctamente'
+    );
+  } catch (error) {
+    if (t) {
+      await t.rollback();
+    }
+    return errorResponse(res, error);
+  }
+};
+
 export default {
   getInfoPhotoDbById,
   changeStatusSession,
@@ -420,5 +481,6 @@ export default {
   deleteImageDelivery,
   getServices,
   addService,
-  getLocations
+  getLocations,
+  setCameraPermission
 };

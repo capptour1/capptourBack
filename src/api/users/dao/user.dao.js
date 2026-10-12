@@ -639,6 +639,42 @@ const crearReservaServicio = async (
 };
 
 
+/**
+ * Permiso efectivo de cámara de una reserva (tabla reserva.reserva_camara).
+ * La tabla admite varias filas por reserva (histórico): la efectiva es la más
+ * reciente por fecha_creacion (desempate por id_permiso). Sin filas → null
+ * (el llamador debe denegar; el DEFAULT 'A' de la columna no se aplica
+ * retroactivamente).
+ */
+const getEffectiveCameraPermission = async (id_reserva) => {
+    const result = await sequelize.query(
+        `SELECT id_permiso, id_reserva, estado, fecha_creacion
+         FROM reserva.reserva_camara
+         WHERE id_reserva = CAST(:id_reserva AS int)
+         ORDER BY fecha_creacion DESC, id_permiso DESC
+         LIMIT 1`,
+        {
+            replacements: { id_reserva },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result[0] ?? null;
+};
+
+const getBookingParties = async (id_reserva) => {
+    const result = await sequelize.query(
+        `SELECT id_cliente, id_fotografo, estado
+         FROM reserva.reserva
+         WHERE id_reserva = CAST(:id_reserva AS int)`,
+        {
+            replacements: { id_reserva },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result[0] ?? null;
+};
+
+
 export default {
     getTransaction,
     getInfoPhotoById,
@@ -657,7 +693,9 @@ export default {
     submitServiceRating,
     getFullImagesByBookingId,
     getImageById,
-    createInstantSession
+    createInstantSession,
+    getEffectiveCameraPermission,
+    getBookingParties
 };
 
 

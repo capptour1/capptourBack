@@ -1,6 +1,7 @@
 import express from 'express';
 import photographerController from './controllers/photographer.controller.js';
 import pBookingController from './controllers/p_booking.controller.js';
+import authMiddleware from '../../middleware/auth.js';
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.post('/deleteImageDelivery', photographerController.deleteImageDelivery);
 router.post('/getServices', photographerController.getServices);
 router.post('/addService', upload.any(), photographerController.addService);
 router.post('/getLocations', photographerController.getLocations);
+router.post('/camera-permission', authMiddleware, photographerController.setCameraPermission);
 
 export default router;

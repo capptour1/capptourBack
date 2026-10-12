@@ -534,6 +534,37 @@ const addGalleryImages = async (imagesData, transaction) => {
 };
 
 
+/**
+ * Registra un cambio de permiso de cámara (tabla reserva.reserva_camara).
+ * Solo INSERT: el histórico se conserva y la fila efectiva es siempre la más
+ * reciente (ver getEffectiveCameraPermission en user.dao.js).
+ */
+const insertCameraPermission = async (id_reserva, estado, transaction) => {
+    const result = await sequelize.query(
+        `INSERT INTO reserva.reserva_camara (id_reserva, estado)
+         VALUES (CAST(:id_reserva AS int), :estado)
+         RETURNING id_permiso, id_reserva, estado, fecha_creacion;`,
+        {
+            replacements: { id_reserva, estado },
+            type: QueryTypes.INSERT,
+            transaction
+        }
+    );
+    return result[0][0];
+}
+
+const getPhotographerIdByUser = async (id_usuario) => {
+    const result = await sequelize.query(
+        `SELECT id FROM fotografo.fotografos
+         WHERE id_usuario = CAST(:id_usuario AS int) LIMIT 1;`,
+        {
+            replacements: { id_usuario },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result[0]?.id ?? null;
+}
+
 export default {
     start_transaction,
     getInfoPhotoDbById,
@@ -554,7 +585,9 @@ export default {
     addServiceCategories,
     addGalleryImages,
     getLocations,
-    getBookingOwner
+    getBookingOwner,
+    insertCameraPermission,
+    getPhotographerIdByUser
 
 
 };
