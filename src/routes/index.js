@@ -6,6 +6,7 @@ import chatRoutes from '../api/chat/routes.js';
 import notificationRoutes from '../api/notifications/router.js';
 import pagosRoutes from '../api/membresias/router.js';
 import sharedRoutes from '../api/shared/router.js';
+import imageEditingRoutes from '../api/image-editing/router.js';
 
 const router = express.Router();
 
@@ -16,5 +17,6 @@ router.use('/chat', chatRoutes);
 router.use('/shared', sharedRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/pagos', pagosRoutes);
+router.use('/image-editing', imageEditingRoutes);
 
 export default router;
