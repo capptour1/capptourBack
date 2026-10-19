@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import AppError from '../utils/appError.js';
 
 /**
@@ -14,25 +13,33 @@ export const EDIT_OPERATION = {
   RELIGHTING: 'relighting',
 };
 
-const _hasApiKey = () =>
-  Boolean(process.env.PHOTOROOM_API_KEY && process.env.PHOTOROOM_API_KEY.trim());
-
 /**
  * Capa de edición de imágenes de CappTour.
- * Isola al proveedor (PhotoRoom) detrás de un contrato propio.
- * No persiste imágenes ni parámetros en base de datos.
+ *
+ * Isola al proveedor de IA detrás de ImageEditingAdapter. No persiste
+ * imágenes ni parámetros en base de datos. No conoce a PhotoRoom ni a
+ * ningún proveedor concreto: depende de ImageEditingAdapter (abstracción).
  */
 class ImageEditingService {
-  constructor(photoRoomAdapter) {
-    this._adapter = photoRoomAdapter;
+  /**
+   * @param {ImageEditingAdapter} adapter - adaptador de proveedor de edición
+   */
+  constructor(adapter) {
+    if (!adapter || typeof adapter.isAvailable !== 'function' || typeof adapter.edit !== 'function') {
+      throw new Error('ImageEditingService requiere un adaptador que implemente ImageEditingAdapter');
+    }
+    this._adapter = adapter;
   }
 
   /**
-   * Indica si la capacidad de edición está disponible (clave configurada en entorno).
+   * Indica si la capacidad de edición está disponible.
+   * La disponibilidad la determina el adaptador (credenciales, conexión, etc.).
    * Se verifica en cada llamada para permitir configuración en tiempo de ejecución.
+   *
+   * @returns {boolean}
    */
   isAvailable() {
-    return _hasApiKey();
+    return this._adapter.isAvailable();
   }
 
   /**
@@ -47,6 +54,8 @@ class ImageEditingService {
    * @param {string} [params.color] - color hex para fondo sólido (ej: 'FFFFFF')
    * @param {string} [params.prompt] - instrucción de texto para fondo generado
    * @returns {Promise<Buffer>} bytes de la imagen resultante
+   * @throws {AppError} con código 503 si el proveedor no está disponible
+   * @throws {Error} si el adaptador lanza un error de proveedor
    */
   async edit({
     imageBuffer,
@@ -57,7 +66,7 @@ class ImageEditingService {
     color,
     prompt,
   }) {
-    if (!_hasApiKey()) {
+    if (!this.isAvailable()) {
       throw new AppError('IMAGE_EDITING_UNAVAILABLE', 503);
     }
 
