@@ -3,6 +3,7 @@ import multer from 'multer';
 import authMiddleware from '../../middleware/auth.js';
 import ImageEditingService from '../../services/image-editing.service.js';
 import PhotoRoomAdapter from '../../services/photoroom.adapter.js';
+import BriaEraserAdapter from '../../services/bria-erasure.adapter.js';
 import ImageEditingController from './controllers/image-editing.controller.js';
 
 const router = express.Router();
@@ -22,17 +23,23 @@ const upload = multer({
   },
 });
 
-// Instanciar adaptador y servicio. El servicio verifica internamente
-// si PHOTOROOM_API_KEY está configurada; si no, está no disponible.
+// Instanciar adaptadores y servicios.
+// El servicio de edición general usa PhotoRoomAdapter para las operaciones
+// existentes (remove_background, transparent_background, etc.).
+// El servicio de eliminación de objetos usa BriaEraserAdapter.
 const photoRoomAdapter = new PhotoRoomAdapter();
+const briaEraserAdapter = new BriaEraserAdapter();
+
 const imageEditingService = new ImageEditingService(photoRoomAdapter);
-const imageEditingController = new ImageEditingController(imageEditingService);
+const briaEraserService = new ImageEditingService(briaEraserAdapter);
+const imageEditingController = new ImageEditingController(imageEditingService, briaEraserService);
 
 /**
  * POST /api/image-editing/edit
  * Operación de edición de imágenes para la demo de inversión.
  * Requiere autenticación JWT.
- * Sin PHOTOROOM_API_KEY configurada, responde 503 IMAGE_EDITING_UNAVAILABLE.
+ * Sin PHOTOROOM_API_KEY configurada, las operaciones de PhotoRoom responden 503.
+ * Sin BRIA_API_TOKEN configurada, la operación remove_object responde 503.
  */
 router.post(
   '/edit',
@@ -40,6 +47,7 @@ router.post(
   upload.fields([
     { name: 'image', maxCount: 1 },
     { name: 'backgroundAsset', maxCount: 1 },
+    { name: 'mask', maxCount: 1 },
   ]),
   (req, res) => {
     imageEditingController.edit(req, res);

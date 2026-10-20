@@ -11,6 +11,7 @@ const EDIT_OPERATION = {
   PREDESIGNED_BACKGROUND: 'predesigned_background',
   TEXT_GENERATED_BACKGROUND: 'text_generated_background',
   RELIGHTING: 'relighting',
+  REMOVE_OBJECT: 'remove_object',
 };
 
 const VALID_OPERATIONS = Object.values(EDIT_OPERATION);
@@ -22,8 +23,9 @@ const VALID_OPERATIONS = Object.values(EDIT_OPERATION);
  * No conoce PhotoRoom ni sus parámetros; solo opera con conceptos de CappTour.
  */
 class ImageEditingController {
-  constructor(imageEditingService) {
+  constructor(imageEditingService, briaEraserService) {
     this._service = imageEditingService;
+    this._briaEraserService = briaEraserService;
   }
 
   /**
@@ -34,6 +36,7 @@ class ImageEditingController {
    *   - color (string hex, requerido para solid_color_background)
    *   - prompt (string, requerido para text_generated_background)
    *   - backgroundAsset (archivo, requerido para predesigned_background)
+   *   - mask (archivo, requerido para remove_object)
    */
   async edit(req, res) {
     try {
@@ -80,6 +83,16 @@ class ImageEditingController {
         }
       }
 
+      if (operation === EDIT_OPERATION.REMOVE_OBJECT) {
+        const maskFile = req.files && req.files.mask ? req.files.mask[0] : undefined;
+        if (!maskFile) {
+          return res.status(400).json({
+            status: 'fail',
+            message: 'mask es obligatorio para eliminación de objetos',
+          });
+        }
+      }
+
       let backgroundAssetBuffer = null;
       let backgroundMimeType = null;
       if (req.files && req.files.backgroundAsset) {
@@ -88,7 +101,20 @@ class ImageEditingController {
         backgroundMimeType = bgFile.mimetype;
       }
 
-      const resultBuffer = await this._service.edit({
+      let maskBuffer = null;
+      let maskMimeType = null;
+      if (req.files && req.files.mask) {
+        const maskFile = req.files.mask[0];
+        maskBuffer = maskFile.buffer;
+        maskMimeType = maskFile.mimetype;
+      }
+
+      // Seleccionar el servicio correcto según la operación
+      const service = operation === EDIT_OPERATION.REMOVE_OBJECT
+        ? this._briaEraserService
+        : this._service;
+
+      const resultBuffer = await service.edit({
         imageBuffer: imageFile.buffer,
         mimeType: imageFile.mimetype,
         operation,
@@ -96,6 +122,8 @@ class ImageEditingController {
         backgroundMimeType,
         color,
         prompt,
+        maskBuffer,
+        maskMimeType,
       });
 
       // Devolver el resultado de forma temporal al cliente para que lo guarde

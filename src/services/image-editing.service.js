@@ -11,6 +11,7 @@ export const EDIT_OPERATION = {
   PREDESIGNED_BACKGROUND: 'predesigned_background',
   TEXT_GENERATED_BACKGROUND: 'text_generated_background',
   RELIGHTING: 'relighting',
+  REMOVE_OBJECT: 'remove_object',
 };
 
 /**
@@ -65,6 +66,8 @@ class ImageEditingService {
     backgroundMimeType,
     color,
     prompt,
+    maskBuffer,
+    maskMimeType,
   }) {
     if (!this.isAvailable()) {
       throw new AppError('IMAGE_EDITING_UNAVAILABLE', 503);
@@ -78,6 +81,8 @@ class ImageEditingService {
       backgroundMimeType,
       color,
       prompt,
+      maskBuffer,
+      maskMimeType,
     });
   }
 }

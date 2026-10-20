@@ -70,8 +70,23 @@ console.log('=== Pruebas unitarias de ImageEditingService ===\n');
 
   const result = await service.edit(params);
 
+  // El servicio normaliza los parámetros reenviados al adaptador e incluye
+  // siempre las claves de máscara (maskBuffer/maskMimeType). Para esta
+  // operación PhotoRoom llegan como undefined.
+  const expectedForwarded = {
+    operation: 'remove_background',
+    imageBuffer: params.imageBuffer,
+    mimeType: 'image/jpeg',
+    backgroundAssetBuffer: null,
+    backgroundMimeType: null,
+    color: null,
+    prompt: null,
+    maskBuffer: undefined,
+    maskMimeType: undefined,
+  };
+
   assert.strictEqual(adapter.calls.length, 1, 'debería haber una llamada al adaptador');
-  assert.deepStrictEqual(adapter.calls[0], params, 'debería pasar los mismos parámetros al adaptador');
+  assert.deepStrictEqual(adapter.calls[0], expectedForwarded, 'debería reenviar los parámetros normalizados al adaptador');
   assert.ok(result.equals(Buffer.from('fake-image-bytes')), 'debería devolver el buffer del adaptador');
   console.log('✓ Prueba 2: edit() delega al adaptador con parámetros correctos');
 })();
