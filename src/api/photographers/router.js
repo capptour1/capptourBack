@@ -14,7 +14,7 @@ const upload = multer({
 
 
 // NUEVO CONTROLADOR PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL
-router.post('/getInfoPhotoDbById', photographerController.getInfoPhotoDbById);
+router.post('/getInfoDashboard', photographerController.getInfoDashboard);
 router.post('/changeAvailability', photographerController.changeAvailability);
 router.post('/changeStatusServiceRequest', photographerController.changeStatusSession);
 router.post('/getAllSessionsByPhotographer', photographerController.getAllSessionsByPhotographer);
@@ -26,5 +26,6 @@ router.post('/getServices', photographerController.getServices);
 router.post('/addService', upload.any(), photographerController.addService);
 router.post('/getLocations', photographerController.getLocations);
 router.post('/camera-permission', authMiddleware, photographerController.setCameraPermission);
+
 
 export default router;

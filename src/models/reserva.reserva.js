@@ -79,10 +79,10 @@ export default (sequelize, DataTypes) => {
             sourceKey: 'id_reserva',
             as: 'reservasCamara',
         });
-        models.Reserva.hasMany(models.ReservaServicio, {
+        models.Reserva.hasOne(models.ReservaServicio, {
             foreignKey: 'id_reserva',
             sourceKey: 'id_reserva',
-            as: 'serviciosReserva',
+            as: 'reservaServicio',
         });
         models.Reserva.hasMany(models.Entrega, {
             foreignKey: 'id_reserva',

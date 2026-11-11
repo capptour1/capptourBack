@@ -25,7 +25,7 @@ const sequelize = new Sequelize(
     }
 );
 
-const models = {};
+const Models = {};
 
 async function initializeModels() {
     // 1. Obtener archivos de modelos
@@ -46,20 +46,20 @@ async function initializeModels() {
 
         const model = defineModel(sequelize, DataTypes);
 
-        models[model.name] = model;
+        Models[model.name] = model;
     }
 
     // 3. Configurar asociaciones
-    for (const model of Object.values(models)) {
+    for (const model of Object.values(Models)) {
         if (typeof model.associate === 'function') {
-            model.associate(models);
+            model.associate(Models);
         }
     }
 
-    return models;
+    return Models;
 }
 
 await initializeModels();
 
-export { sequelize, models };
+export { Sequelize, sequelize, Models };
 export default sequelize;

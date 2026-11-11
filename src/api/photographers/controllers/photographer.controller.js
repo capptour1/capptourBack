@@ -13,30 +13,14 @@ const { successResponse, errorResponse } = HelperResponse;
 const { createThumbnail } = media;
 
 
-const getInfoPhotoDbById = async (req, res) => {
+const getInfoDashboard = async (req, res) => {
   try {
     const { id_usuario } = req.body;
-
-    console.log('Get info photo by ID controller called', req.body);
-
-    const [photographerInfo, sessionsInfo] = await Promise.all([
-      PhotographerDAO.getInfoPhotoDbById(id_usuario),
-      PhotographerDAO.getInfoSessionPhotoDbById(id_usuario)
-    ]);
-
-    if (!photographerInfo) {
+    const photographerInfo = await PhotographerDAO.getInfoDashboard(id_usuario);
+    if (!photographerInfo || photographerInfo.length === 0) {
       throw new AppError('Fotógrafo no encontrado', 404);
     }
-
-    return successResponse(
-      res,
-      {
-        ...photographerInfo,
-        sessions: sessionsInfo
-      },
-      'Información del fotógrafo obtenida correctamente'
-    );
-
+    successResponse(res, photographerInfo[0], 'Información del fotógrafo obtenida correctamente');
   } catch (error) {
     return errorResponse(res, error);
   }
@@ -471,7 +455,7 @@ const setCameraPermission = async (req, res) => {
 };
 
 export default {
-  getInfoPhotoDbById,
+  getInfoDashboard: getInfoDashboard,
   changeStatusSession,
   changeAvailability,
   getAllSessionsByPhotographer,

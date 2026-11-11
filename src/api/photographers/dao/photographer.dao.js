@@ -1,4 +1,6 @@
-import sequelize from '../../../models/index.js';
+import {
+    Models, sequelize, Sequelize
+} from '../../../models/index.js';
 import { QueryTypes } from 'sequelize';
 import AppError from '../../../utils/appError.js';
 
@@ -11,6 +13,71 @@ const start_transaction = () => {
 
 
 // NUEVO DAO PARA BÚSQUEDA DE FOTÓGRAFOS DESDE APP MÓVIL
+
+const getInfoDashboard = async (id_usuario) => {
+    return Models.Fotografos.findAll({
+        attributes: {
+            exclude: ['id'],
+            include: [
+                ['id', 'id_fotografo'],
+                [Sequelize.col('is_active'), 'disponibilidad'],
+                [Sequelize.col('tipoExperiencia.descripcion'), 'tipo_experiencia'],
+                [Sequelize.col('localizaciones.latitud'), 'latitud'],
+                [Sequelize.col('localizaciones.longitud'), 'longitud'],
+                [Sequelize.col('tipoRol.descripcion'), 'tipo_rol'],
+                [Sequelize.col('usuario.nombre_completo'), 'nombre'],
+                [Sequelize.col('usuario.foto_perfil'), 'thumbnail'],
+            ]
+        },
+        where: { id_usuario },
+        include: [{
+            atributes: [],
+            model: Models.Usuarios,
+            as: 'usuario',
+        },{
+            model: Models.TipoExperiencia,
+            as: 'tipoExperiencia',
+            attributes: [],
+        },
+        {
+            model: Models.Localizacion,
+            as: 'localizaciones',
+            attributes: [],
+        },
+        {
+            model: Models.TipoRol,
+            as: 'tipoRol',
+            attributes: [],
+        }, {
+            model: Models.Reserva,
+            as: 'reservas',
+            include: [{
+                model: Models.ReservaServicio,
+                attributes: {
+                    exclude: ['nombre', 'descripcion', 'id_moneda'],
+                    include: [
+                        ['nombre', 'nombre_servicio'],
+                        ['descripcion', 'descripcion_servicio'],
+                    ]
+                },
+                as: 'reservaServicio',
+                include: [{
+                    model: Models.TipoMoneda,
+                    as: 'tipoMoneda',
+                }],
+            }, {
+                model: Models.Usuarios,
+                as: 'cliente',
+                attributes: [
+                    [Sequelize.col('id'), 'id_cliente'],
+                    [Sequelize.col('nombre_completo'), 'nombre_cliente'],
+                    [Sequelize.col('foto_perfil'), 'thumbnail_cliente']
+                ],
+            }],
+        }],
+    });
+
+};
 
 const getInfoPhotoDbById = async (id_usuario) => {
     const result = await sequelize.query(
@@ -32,6 +99,8 @@ const getInfoPhotoDbById = async (id_usuario) => {
     );
     return result[0];
 };
+
+
 
 const getInfoSessionPhotoDbById = async (id_usuario) => {
     const result = await sequelize.query(
@@ -567,6 +636,7 @@ const getPhotographerIdByUser = async (id_usuario) => {
 
 export default {
     start_transaction,
+    getInfoDashboard,
     getInfoPhotoDbById,
     getInfoSessionPhotoDbById,
     changeStatusSession,
